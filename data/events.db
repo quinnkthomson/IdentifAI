@@ -1,7 +1,0 @@
-"""
-events.db
----------
-The SQLite database used for events, user accounts, and face-reference metadata.
-Automatically created by database.py if not present. Not committed to Git for
-privacy and size reasons.
-"""
