@@ -1,0 +1,86 @@
+# ----------------------------
+# Python Bytecode / Cache Files
+# ----------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ----------------------------
+# Virtual Environments
+# ----------------------------
+venv/
+env/
+.venv/
+
+# ----------------------------
+# Environment / Secrets
+# ----------------------------
+*.env
+.env.local
+instance/
+
+# ----------------------------
+# SQLite Database Files
+# ----------------------------
+*.db
+*.sqlite3
+
+# For your specific project:
+data/events.db
+
+# ----------------------------
+# Captured Images & Video
+# ----------------------------
+data/captured_images/
+raspberry_pi/captured_images/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+
+# ----------------------------
+# Reference Images (Optionally ignore)
+# If you want to track known-face reference images, remove this section.
+# ----------------------------
+web_app/uploads/reference_faces/
+
+# ----------------------------
+# Machine Learning Models
+# ----------------------------
+*.pt         # PyTorch weights (YOLO)
+*.onnx
+*.h5
+*.pkl
+*.joblib
+model_cache/
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+logs/
+flask.log
+
+# ----------------------------
+# OS / IDE / Misc
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+.code-workspace
+
+# PyCharm
+.idea/
+
+# ----------------------------
+# Flask Static Builds (if generated)
+# ----------------------------
+web_app/static/build/
+
+# ----------------------------
+# Node Modules (if frontend expands)
+# ----------------------------
+node_modules/
