@@ -1,4 +1,4 @@
-# Raspberry Pi Facial Recognition System
+# 🥧 Raspberry Pi Facial Recognition System
 
 ## Overview
 
