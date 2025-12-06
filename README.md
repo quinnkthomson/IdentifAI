@@ -112,36 +112,7 @@ pip3 install numpy face-recognition
 
 ---
 
-## 4. Project Structure
-
-Your project folder should look like this:
-
-```
-project/
-│── main.py
-│── encode_faces.py
-│── faces/
-│    └── <your training images>
-│── models/
-│    └── encodings.pickle
-│── README.md
-```
-
-### `faces/`
-
-Add images of people you want the system to recognize. Use clear, forward-facing photos.
-
-### `encode_faces.py`
-
-Reads all images in `faces/` and generates a serialized encoding file.
-
-### `main.py`
-
-Runs the live camera feed and performs recognition.
-
----
-
-## 5. Encoding Faces
+## 4. Encoding Faces
 
 Before running the system, encode your training images:
 
@@ -153,7 +124,7 @@ This generates `models/encodings.pickle`, which contains all face embeddings.
 
 ---
 
-## 6. Running the Facial Recognition System
+## 5. Running the Facial Recognition System
 
 Start the program:
 
@@ -183,7 +154,7 @@ Save and reboot.
 
 ---
 
-## 7. Troubleshooting
+## 6. Troubleshooting
 
 ### Camera not detected
 
@@ -232,7 +203,7 @@ sudo nmap -sn 10.0.0.0/24
 
 ---
 
-## 8. Notes for Graders / Staff
+## 7. Notes for Graders / Staff
 
 * All code files are included and documented.
 * No GUI or desktop environment is required.
@@ -244,7 +215,7 @@ If any step is unclear, the issue is likely related to network configuration or 
 
 ---
 
-## 9. Conclusion
+## 8. Conclusion
 
 This project demonstrates how a lightweight Raspberry Pi system can perform real-time facial recognition using only Python, OpenCV, and a camera module. The code is simple enough for modification, yet robust enough to run continuously as a background service.
 
