@@ -1,0 +1,26 @@
+{
+  "snapshot-2025-12-07T07-36-52-407Z.jpg": {
+    "decision": "approve",
+    "timestamp": "2025-12-07T07:41:56.736076"
+  },
+  "snapshot-2025-12-07T07-36-52-208Z.jpg": {
+    "decision": "approve",
+    "timestamp": "2025-12-07T07:42:01.135096"
+  },
+  "snapshot-2025-12-07T07-42-36-789Z.jpg": {
+    "decision": "deny",
+    "timestamp": "2025-12-07T07:42:45.568596"
+  },
+  "snapshot-2025-12-07T07-43-56-069Z.jpg": {
+    "decision": "deny",
+    "timestamp": "2025-12-07T07:44:01.701602"
+  },
+  "snapshot-2025-12-07T07-48-33-800Z.jpg": {
+    "decision": "deny",
+    "timestamp": "2025-12-07T07:49:02.015346"
+  },
+  "snapshot-2025-12-07T07-50-27-404Z.jpg": {
+    "decision": "deny",
+    "timestamp": "2025-12-07T07:50:46.729724"
+  }
+}

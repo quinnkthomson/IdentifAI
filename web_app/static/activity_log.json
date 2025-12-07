@@ -1,0 +1,32 @@
+[
+  {
+    "type": "deny",
+    "description": "Face denied",
+    "timestamp": "2025-12-07T07:50:46.728252"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T07-50-27-404Z.jpg",
+    "timestamp": "2025-12-07T07:50:27.411879"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T07-49-46-948Z.jpg",
+    "timestamp": "2025-12-07T07:49:46.954773"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T07-49-41-932Z.jpg",
+    "timestamp": "2025-12-07T07:49:41.939610"
+  },
+  {
+    "type": "deny",
+    "description": "Face denied",
+    "timestamp": "2025-12-07T07:49:02.014068"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T07-48-33-800Z.jpg",
+    "timestamp": "2025-12-07T07:48:33.807409"
+  }
+]

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification - IdentifAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .verification-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .verification-header {
+            padding: 40px 32px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .verification-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .verification-subtitle {
+            font-size: 14px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .slideshow-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .slideshow-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border: 1px solid #e5e5e5;
+            background: #fff;
+        }
+
+        .slide-nav {
+            position: absolute;
+            display: flex;
+            gap: 16px;
+            bottom: 40px;
+            left: 40px;
+        }
+
+        .nav-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid #e5e5e5;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #000;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            border-color: #000;
+            background: #000;
+            color: #fff;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            font-size: 14px;
+            color: #666;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .verification-footer {
+            padding: 40px 32px;
+            border-top: 1px solid #e5e5e5;
+            background: #fff;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .btn-verify {
+            padding: 14px 32px;
+            background: #000;
+            color: #fff;
+            border: 1px solid #000;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 0;
+            transition: all 0.2s;
+            min-width: 160px;
+        }
+
+        .btn-verify:hover {
+            background: #333;
+            border-color: #333;
+        }
+
+        .btn-verify.deny {
+            background: #fff;
+            color: #000;
+            border: 1px solid #e5e5e5;
+        }
+
+        .btn-verify.deny:hover {
+            background: #f5f5f5;
+            border-color: #000;
+        }
+
+        .btn-verify:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .no-images {
+            text-align: center;
+            padding: 80px 32px;
+            color: #999;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .no-images-text {
+            font-size: 16px;
+            margin-bottom: 24px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 24px;
+            color: #000;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #e5e5e5;
+            padding: 10px 20px;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            border-color: #000;
+        }
+
+        /* Summary Section */
+        .verification-summary {
+            padding: 60px 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            background: #fff;
+        }
+
+        .summary-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            letter-spacing: -0.5px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+        }
+
+        .summary-section {
+            border-top: 1px solid #e5e5e5;
+            padding-top: 40px;
+        }
+
+        .summary-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .summary-section-title .badge {
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .summary-section-title.approved {
+            color: #000;
+        }
+
+        .summary-section-title.denied {
+            color: #666;
+        }
+
+        .summary-section-title.denied .badge {
+            background: #ccc;
+        }
+
+        .summary-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .summary-thumb {
+            border: 1px solid #e5e5e5;
+            aspect-ratio: 1;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .summary-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .summary-empty {
+            padding: 40px 24px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            grid-column: 1 / -1;
+            background: #f9f9f9;
+            border: 1px dashed #e5e5e5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <a href="/" class="logo">IdentifAI</a>
+            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
+        </div>
+        <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link">Stream</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/verification" class="nav-link active">Verify</a>
+            </div>
+            <a href="/dashboard" class="btn-primary">Back to Dashboard</a>
+            <button class="btn-icon">+</button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="verification-container">
+        <div class="verification-header">
+            <div class="verification-title">Face Verification</div>
+            <div class="verification-subtitle">Review images and approve or deny access for each face.</div>
+        </div>
+
+        {% if images and images|length > 0 %}
+            <div class="slideshow-wrapper">
+                <div class="slideshow-container">
+                    {% for img in images %}
+                        <div class="slide {% if loop.first %}active{% endif %}" data-image="{{ img }}">
+                            <img src="{{ url_for('static', filename='images/' + img) }}" alt="Face to verify" />
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="slide-nav">
+                        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
+                        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
+                    </div>
+                    <div class="slide-counter">
+                        <span id="currentSlide">1</span> / <span id="totalSlides">{{ images|length }}</span>
+                    </div>
+                </div>
+
+                <div class="verification-footer">
+                    <button type="button" class="btn-verify deny" onclick="submitVerification('deny')">
+                        ✗ Deny Access
+                    </button>
+                    <button type="button" class="btn-verify" onclick="submitVerification('approve')">
+                        ✓ Approve Access
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <div class="slideshow-wrapper">
+                <div class="no-images">
+                    <div class="no-images-text">No images available for verification</div>
+                    <a href="/dashboard" class="back-link">Back to Dashboard</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Summary Section -->
+    <div class="verification-summary">
+        <div class="summary-title">Verification Summary</div>
+        <div class="summary-grid">
+            <!-- Approved Section -->
+            <div class="summary-section">
+                <div class="summary-section-title approved">
+                    <span>✓ Approved Access</span>
+                    <span class="badge" id="approvedCount">0</span>
+                </div>
+                <div class="summary-images" id="approvedImages">
+                    <div class="summary-empty">No approved faces yet</div>
+                </div>
+            </div>
+
+            <!-- Denied Section -->
+            <div class="summary-section">
+                <div class="summary-section-title denied">
+                    <span>✗ Denied Access</span>
+                    <span class="badge" id="deniedCount">0</span>
+                </div>
+                <div class="summary-images" id="deniedImages">
+                    <div class="summary-empty">No denied faces yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // Timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[now.getMonth()];
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+
+        // Show slide by index
+        function showSlide(index) {
+            if (totalSlides === 0) return;
+            
+            // Wrap around
+            if (index >= totalSlides) currentSlideIndex = 0;
+            if (index < 0) currentSlideIndex = totalSlides - 1;
+            
+            // Hide all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            // Show current slide
+            slides[currentSlideIndex].classList.add('active');
+            
+            // Update counter
+            document.getElementById('currentSlide').textContent = currentSlideIndex + 1;
+            
+            // Update nav button states
+            updateNavButtons();
+        }
+
+        function updateNavButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            // You could disable buttons at the ends if you prefer, but for now allow wrapping
+            prevBtn.disabled = false;
+            nextBtn.disabled = false;
+        }
+
+        function nextSlide() {
+            currentSlideIndex++;
+            showSlide(currentSlideIndex);
+        }
+
+        function prevSlide() {
+            currentSlideIndex--;
+            showSlide(currentSlideIndex);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        // Submit verification for current slide
+        function submitVerification(decision) {
+            if (totalSlides === 0) {
+                alert('No images to verify');
+                return;
+            }
+
+            const currentSlide = slides[currentSlideIndex];
+            const imageName = currentSlide.getAttribute('data-image');
+
+            const payload = {
+                image: imageName,
+                decision: decision
+            };
+
+            fetch('/verify_face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Face ${decision === 'approve' ? 'approved' : 'denied'} successfully!`);
+                    // Move to next image or go back
+                    if (currentSlideIndex < totalSlides - 1) {
+                        nextSlide();
+                    } else {
+                        window.location.href = '/dashboard';
+                    }
+                } else {
+                    alert(`Error: ${data.error || 'Unknown error'}`);
+                }
+            })
+            .catch(err => {
+                console.error('Verification failed:', err);
+                alert('Failed to submit verification');
+            });
+        }
+
+        // Initialize
+        showSlide(0);
+
+        // Load and display summary
+        function loadSummary() {
+            fetch('/verification_summary')
+            .then(res => res.json())
+            .then(data => {
+                const approvedCount = document.getElementById('approvedCount');
+                const deniedCount = document.getElementById('deniedCount');
+                const approvedImages = document.getElementById('approvedImages');
+                const deniedImages = document.getElementById('deniedImages');
+
+                approvedCount.textContent = data.total_approved;
+                deniedCount.textContent = data.total_denied;
+
+                // Render approved images
+                if (data.approved && data.approved.length > 0) {
+                    approvedImages.innerHTML = data.approved.map(img => `
+                        <div class="summary-thumb">
+                            <img src="{{ url_for('static', filename='images/approved/') }}${img}" alt="approved face" />
+                        </div>
+                    `).join('');
+                } else {
+                    approvedImages.innerHTML = '<div class="summary-empty">No approved faces yet</div>';
+                }
+
+                // Render denied images
+                if (data.denied && data.denied.length > 0) {
+                    deniedImages.innerHTML = data.denied.map(img => `
+                        <div class="summary-thumb">
+                            <img src="{{ url_for('static', filename='images/denied/') }}${img}" alt="denied face" />
+                        </div>
+                    `).join('');
+                } else {
+                    deniedImages.innerHTML = '<div class="summary-empty">No denied faces yet</div>';
+                }
+            })
+            .catch(err => console.error('Failed to load summary:', err));
+        }
+
+        // Load summary on page load
+        loadSummary();
+    </script>
+</body>
+</html>
