@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdentifAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            background: #ffffff;
+            color: #000000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-size: 13px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .logo {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+            color: #000;
+            text-decoration: none;
+        }
+
+        .header-date {
+            font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-link {
+            font-size: 13px;
+            color: #666;
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: #000;
+        }
+
+        .nav-link.active {
+            color: #000;
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: #000;
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 0;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-primary:hover {
+            background: #333;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #000;
+            color: #fff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: #333;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .content-header {
+            padding: 80px 32px 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .content-title {
+            font-size: 96px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            letter-spacing: -3px;
+            line-height: 1;
+            color: #000;
+        }
+
+        .content-description {
+            font-size: 18px;
+            color: #666;
+            font-weight: 400;
+            max-width: 500px;
+            line-height: 1.6;
+            margin-left: auto;
+            margin-right: 0;
+            text-align: right;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 0 32px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 60px;
+            margin-top: 60px;
+        }
+
+        /* Video Section */
+        .video-container {
+            background: #000;
+            border: 1px solid #e5e5e5;
+            border-radius: 0;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 4 / 3;
+            min-height: 400px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+
+        .video-wrapper img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .video-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            padding: 24px;
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .video-container:hover .video-overlay {
+            opacity: 1;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #000;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+            cursor: pointer;
+            border-radius: 0;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #fff;
+            border-color: #fff;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .stat-card {
+            background: transparent;
+            border: none;
+            border-top: 1px solid #e5e5e5;
+            padding: 0;
+            padding-top: 24px;
+        }
+
+        .stat-card-title {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            color: #000;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace !important;
+        }
+
+        .stat-value.status-connected {
+            color: #000;
+        }
+
+        .stat-value.status-disconnected {
+            color: #999;
+        }
+
+        /* Snapshot Preview */
+        .snapshot-preview {
+            width: 100%;
+            border-radius: 0;
+            border: 1px solid #e5e5e5;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .snapshot-preview.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 24px;
+            color: #999;
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 400;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .content-title {
+                font-size: 64px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 0 24px 60px;
+            }
+
+            .content-header {
+                padding: 60px 24px 40px;
+            }
+
+            .content-title {
+                font-size: 48px;
+                letter-spacing: -2px;
+            }
+
+            .content-description {
+                text-align: left;
+                margin-left: 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .video-overlay {
+                opacity: 1;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <a href="/" class="logo">IdentifAI</a>
+            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
+        </div>
+        <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Stream</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Events</a>
+                <a href="#" class="nav-link">Settings</a>
+            </div>
+            <a href="/dashboard" class="btn-primary">View Dashboard</a>
+            <button class="btn-icon">+</button>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="content-header">
+            <div class="content-title">Camera Stream</div>
+            <div class="content-description">
+                Real-time facial recognition system providing live video feed and monitoring capabilities for security and access control.
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Video Section -->
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <img id="videoFeed" src="/video_feed" alt="Camera Stream" onerror="handleStreamError()" />
+                    <div id="loading" class="loading">
+                        <div class="spinner"></div>
+                        <span>Connecting...</span>
+                    </div>
+                </div>
+                <div class="video-overlay">
+                    <button class="btn" onclick="captureSnapshot()">
+                        Capture
+                    </button>
+                    <button class="btn" onclick="toggleFullscreen()">
+                        Fullscreen
+                    </button>
+                    <button class="btn" onclick="refreshStream()">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <div class="stat-card-title">Status</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Connection</span>
+                        <span class="stat-value status-connected" id="connectionStatus">Connected</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="uptime">00:00:00</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-title">Stream Info</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Resolution</span>
+                        <span class="stat-value">640×480</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">FPS</span>
+                        <span class="stat-value">~30</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-title">Latest Snapshot</div>
+                    <div class="empty-state" id="emptyState">No snapshot captured</div>
+                    <img id="snapshotPreview" class="snapshot-preview" alt="Snapshot" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[now.getMonth()];
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+
+        // Uptime
+        let startTime = Date.now();
+        function updateUptime() {
+            const elapsed = Date.now() - startTime;
+            const seconds = Math.floor(elapsed / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            document.getElementById('uptime').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        setInterval(updateUptime, 1000);
+
+        // Stream error handling
+        function handleStreamError() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('connectionStatus');
+            loading.classList.add('show');
+            status.textContent = 'Disconnected';
+            status.className = 'stat-value status-disconnected';
+            
+            setTimeout(() => {
+                document.getElementById('videoFeed').src = '/video_feed?' + new Date().getTime();
+                loading.classList.remove('show');
+            }, 2000);
+        }
+
+        // Capture snapshot
+        function captureSnapshot() {
+            const videoFeed = document.getElementById('videoFeed');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const width = videoFeed.naturalWidth || videoFeed.clientWidth || 640;
+            const height = videoFeed.naturalHeight || videoFeed.clientHeight || 480;
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            try {
+                ctx.drawImage(videoFeed, 0, 0, width, height);
+                const dataURL = canvas.toDataURL('image/jpeg', 0.95);
+                
+                const preview = document.getElementById('snapshotPreview');
+                const emptyState = document.getElementById('emptyState');
+                preview.src = dataURL;
+                preview.classList.add('show');
+                emptyState.style.display = 'none';
+                
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                link.download = `snapshot-${timestamp}.jpg`;
+                link.href = dataURL;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error('Snapshot error:', error);
+            }
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            const container = document.querySelector('.video-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => console.error(err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Refresh stream
+        function refreshStream() {
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.src = '';
+            setTimeout(() => {
+                videoFeed.src = '/video_feed?' + new Date().getTime();
+                const status = document.getElementById('connectionStatus');
+                status.textContent = 'Connected';
+                status.className = 'stat-value status-connected';
+            }, 500);
+        }
+
+        // Auto-refresh check
+        setInterval(() => {
+            const videoFeed = document.getElementById('videoFeed');
+            if (videoFeed.complete && videoFeed.naturalHeight === 0) {
+                refreshStream();
+            }
+        }, 5000);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+                captureSnapshot();
+            } else if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                toggleFullscreen();
+            } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                refreshStream();
+            }
+        });
+    </script>
+</body>
+</html>
