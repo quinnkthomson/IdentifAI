@@ -13,8 +13,14 @@ import shutil
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
+# Configure upload settings
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
 # Activity log file
 ACTIVITY_LOG_FILE = os.path.join(os.path.dirname(__file__), 'static', 'activity_log.json')
+
+# Import database functions
+from database import init_db, log_event
 
 def log_activity(activity_type, description):
     """Log an activity event (snapshot, approve, deny)."""
@@ -137,6 +143,67 @@ def save_snapshot():
     # Log activity
     log_activity('snapshot', f'Snapshot saved: {filename}')
     return jsonify({'filename': filename, 'url': image_url}), 201
+
+
+@app.route('/pi_capture', methods=['POST'])
+def pi_capture():
+    """Receive image captures from Raspberry Pi and store in database"""
+    try:
+        # Get the uploaded file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
+
+        # Get metadata from form data
+        timestamp = request.form.get('timestamp', datetime.utcnow().isoformat())
+        source = request.form.get('source', 'unknown')
+
+        # Save the file
+        images_dir = os.path.join(app.static_folder, 'images')
+        os.makedirs(images_dir, exist_ok=True)
+
+        # Generate secure filename with timestamp
+        filename = secure_filename(f"pi_capture_{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}.jpg")
+        file_path = os.path.join(images_dir, filename)
+
+        file.save(file_path)
+
+        # Log to database (for MVP, we'll mark everything as motion/person detection)
+        try:
+            log_event(
+                timestamp=timestamp,
+                image_path=f"images/{filename}",
+                is_motion=True,  # Assume motion for captured images
+                is_person=True,  # Assume person for captured images (will be enhanced later)
+                is_known=False,  # Will be determined by CV later
+                person_name=None,  # Will be filled by CV later
+                label="pi_capture",
+                confidence=0.0,  # Will be filled by CV later
+                metadata=f'{{"source": "{source}", "type": "pi_capture"}}'
+            )
+        except Exception as db_error:
+            app.logger.error(f'Failed to log event to database: {db_error}')
+            # Continue anyway - don't fail the request if DB logging fails
+
+        # Log activity
+        log_activity('capture', f'Pi capture received: {filename}')
+
+        image_url = url_for('static', filename=f'images/{filename}')
+        app.logger.info(f'Pi capture saved: {file_path}')
+
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'url': image_url,
+            'timestamp': timestamp
+        }), 201
+
+    except Exception as e:
+        app.logger.error(f'Pi capture error: {e}')
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/verification')
@@ -319,6 +386,10 @@ def video_feed():
     img_io.seek(0)
     
     return send_file(img_io, mimetype='image/jpeg')
+
+# Initialize database on startup
+with app.app_context():
+    init_db()
 
 # Run the application
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ accounts, and handling file paths to captured images.
 """
 
 import sqlite3
-from 
+from datetime import datetime
 
 DATABASE_PATH = "data/events.db"
 
@@ -61,14 +61,17 @@ def init_db():
 # ------------------------------------------------------------
 # Event Functions
 # ------------------------------------------------------------
-def log_event(timestamp, image_path, is_motion, is_person, is_known, confidence, metadata):
+def log_event(timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata):
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO events (timestamp, image_path, is_motion, is_person, is_known, confidence, metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (timestamp, image_path, is_motion, is_person, is_known, confidence, metadata))
+        INSERT INTO events (timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata))
+
+    conn.commit()
+    conn.close()
 
 def get_events(limit=10):
     conn = get_db()
