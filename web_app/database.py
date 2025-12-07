@@ -7,9 +7,13 @@ accounts, and handling file paths to captured images.
 """
 
 import sqlite3
+import os
 from datetime import datetime
 
-DATABASE_PATH = "data/events.db"
+# Ensure database directory exists and use absolute path
+DB_DIR = os.path.join(os.path.dirname(__file__), 'data')
+os.makedirs(DB_DIR, exist_ok=True)
+DATABASE_PATH = os.path.join(DB_DIR, 'events.db')
 
 def get_db():
     conn = sqlite3.connect(DATABASE_PATH)
