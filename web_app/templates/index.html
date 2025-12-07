@@ -1,7 +1,328 @@
-{% extends "base.html" %}
-{% block title %}Home{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdentifAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <a href="/" class="logo">IdentifAI</a>
+            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
+        </div>
+        <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Stream</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/verification" class="nav-link">Verify</a>
+            </div>
+            <a href="/dashboard" class="btn-primary">View Dashboard</a>
+            <button class="btn-icon">+</button>
+        </div>
+    </div>
 
-{% block content %}
-<p>Welcome to IdentifAI!</p>
-<a href="/dashboard">Go to Dashboard</a>
-{% endblock %}
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="content-header">
+            <div class="content-title">Camera Stream</div>
+            <div class="content-description">
+                Real-time facial recognition system providing live video feed and monitoring capabilities for security and access control.
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Video Section -->
+            <div class="video-container">
+                <div class="video-wrapper">
+                    <img id="videoFeed" src="/video_feed" alt="Camera Stream" onerror="handleStreamError()" />
+                    <div id="loading" class="loading">
+                        <div class="spinner"></div>
+                        <span>Connecting...</span>
+                    </div>
+                </div>
+                <div class="video-overlay">
+                    <button class="btn" onclick="captureSnapshot()">
+                        Capture
+                    </button>
+                    <button class="btn" onclick="toggleFullscreen()">
+                        Fullscreen
+                    </button>
+                    <button class="btn" onclick="refreshStream()">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Panel -->
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <div class="stat-card-title">Status</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Connection</span>
+                        <span class="stat-value status-connected" id="connectionStatus">Connected</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="uptime">00:00:00</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-title">Stream Info</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Resolution</span>
+                        <span class="stat-value">640×480</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">FPS</span>
+                        <span class="stat-value">~30</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-title">Latest Snapshot</div>
+                    <div class="empty-state" id="emptyState">No snapshot captured</div>
+                    <img id="snapshotPreview" class="snapshot-preview" alt="Snapshot" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[now.getMonth()];
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+
+        // Uptime
+        let startTime = Date.now();
+        function updateUptime() {
+            const elapsed = Date.now() - startTime;
+            const seconds = Math.floor(elapsed / 1000);
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            document.getElementById('uptime').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        setInterval(updateUptime, 1000);
+
+        // Stream error handling
+        function handleStreamError() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('connectionStatus');
+            loading.classList.add('show');
+            status.textContent = 'Disconnected';
+            status.className = 'stat-value status-disconnected';
+            
+            setTimeout(() => {
+                document.getElementById('videoFeed').src = '/video_feed?' + new Date().getTime();
+                loading.classList.remove('show');
+            }, 2000);
+        }
+
+        // Capture snapshot
+        function captureSnapshot() {
+            const videoFeed = document.getElementById('videoFeed');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const width = videoFeed.naturalWidth || videoFeed.clientWidth || 640;
+            const height = videoFeed.naturalHeight || videoFeed.clientHeight || 480;
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            try {
+                // Try to draw immediately from the image
+                if (videoFeed.complete && videoFeed.naturalWidth > 0) {
+                    // Image is ready, draw now
+                    ctx.drawImage(videoFeed, 0, 0, width, height);
+                    uploadSnapshot(canvas);
+                } else {
+                    // Image not ready yet, wait a bit
+                    setTimeout(() => {
+                        try {
+                            ctx.drawImage(videoFeed, 0, 0, width, height);
+                            uploadSnapshot(canvas);
+                        } catch (err) {
+                            console.error('Failed to draw image after delay:', err);
+                        }
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('Snapshot error:', error);
+            }
+        }
+
+        // Upload the canvas as a blob or dataURL
+        function uploadSnapshot(canvas) {
+            const preview = document.getElementById('snapshotPreview');
+            const emptyState = document.getElementById('emptyState');
+
+            // Prefer binary upload via FormData (toBlob) for reliability
+            if (canvas.toBlob) {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        console.warn('toBlob returned null, falling back to dataURL');
+                        fallbackDataURLUpload(canvas);
+                        return;
+                    }
+
+                    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+                    const form = new FormData();
+                    form.append('file', blob, `snapshot-${ts}.jpg`);
+
+                    fetch('/save_snapshot', { method: 'POST', body: form })
+                    .then(res => res.json())
+                    .then(json => {
+                        if (json && json.url) {
+                            preview.src = json.url;
+                            preview.classList.add('show');
+                            emptyState.style.display = 'none';
+                            console.log('Snapshot saved:', json.filename);
+                        } else {
+                            console.warn('Unexpected response:', json);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Failed to save snapshot:', err);
+                    });
+                }, 'image/jpeg', 0.95);
+            } else {
+                fallbackDataURLUpload(canvas);
+            }
+        }
+
+        // Fallback: upload as data URL
+        function fallbackDataURLUpload(canvas) {
+            const preview = document.getElementById('snapshotPreview');
+            const emptyState = document.getElementById('emptyState');
+            try {
+                const dataURL = canvas.toDataURL('image/jpeg', 0.95);
+                fetch('/save_snapshot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataURL })
+                })
+                .then(res => res.json())
+                .then(json => {
+                    if (json && json.url) {
+                        preview.src = json.url;
+                        preview.classList.add('show');
+                        emptyState.style.display = 'none';
+                        console.log('Snapshot saved (dataURL):', json.filename);
+                    }
+                })
+                .catch(err => console.error('Fallback upload failed:', err));
+            } catch (err) {
+                console.error('Fallback toDataURL failed:', err);
+            }
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            const container = document.querySelector('.video-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => console.error(err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Refresh stream
+        function refreshStream() {
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.src = '';
+            setTimeout(() => {
+                videoFeed.src = '/video_feed?' + new Date().getTime();
+                const status = document.getElementById('connectionStatus');
+                status.textContent = 'Connected';
+                status.className = 'stat-value status-connected';
+            }, 500);
+        }
+
+        // Auto-refresh check
+        setInterval(() => {
+            const videoFeed = document.getElementById('videoFeed');
+            if (videoFeed.complete && videoFeed.naturalHeight === 0) {
+                refreshStream();
+            }
+        }, 5000);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'c' && !e.ctrlKey && !e.metaKey) {
+                captureSnapshot();
+            } else if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                toggleFullscreen();
+            } else if (e.key === 'r' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                refreshStream();
+            }
+        });
+
+        // Auto-start recording when navigated from Dashboard
+        let autoCaptureIntervalId = null;
+        function startAutoCapture(intervalMs = 5000) {
+            if (autoCaptureIntervalId) return;
+            try {
+                // initial capture
+                captureSnapshot();
+            } catch (e) {
+                console.warn('Initial auto-capture failed:', e);
+            }
+            autoCaptureIntervalId = setInterval(() => {
+                try { captureSnapshot(); } catch (err) { console.error('Auto-capture error:', err); }
+            }, intervalMs);
+            const status = document.getElementById('connectionStatus');
+            if (status) {
+                status.textContent = 'Recording';
+                status.className = 'stat-value status-connected';
+            }
+        }
+
+        function stopAutoCapture() {
+            if (!autoCaptureIntervalId) return;
+            clearInterval(autoCaptureIntervalId);
+            autoCaptureIntervalId = null;
+            const status = document.getElementById('connectionStatus');
+            if (status) {
+                status.textContent = 'Connected';
+                status.className = 'stat-value status-connected';
+            }
+        }
+
+        function getQueryParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name);
+        }
+
+        // If ?startRecording=1 or ?startRecording=true present, start auto-capture
+        if (getQueryParam('startRecording') === '1' || getQueryParam('startRecording') === 'true') {
+            // small delay to allow stream to initialize
+            setTimeout(() => startAutoCapture(5000), 1000);
+            // stop auto-capture when leaving
+            window.addEventListener('beforeunload', stopAutoCapture);
+        }
+    </script>
+</body>
+</html>

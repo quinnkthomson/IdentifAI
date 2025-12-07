@@ -1,6 +1,168 @@
-{% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - IdentifAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <a href="/" class="logo">IdentifAI</a>
+            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
+        </div>
+            <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link">Stream</a>
+                <a href="/dashboard" class="nav-link active">Dashboard</a>
+                <a href="/verification" class="nav-link">Verify</a>
+            </div>
+            <a href="/?startRecording=1" class="btn-primary">Start Monitoring</a>
+            <button class="btn-icon">+</button>
+        </div>
+    </div>
 
-{% block content %}
-<p>This is the dashboard placeholder. Events will show here later.</p>
-{% endblock %}
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="content-header">
+                <div class="content-title">Dashboard</div>
+                <div class="content-description">
+                    Real-time facial recognition system providing insights and analytics for security monitoring and access control.
+                </div>
+            </div>t
+
+            <div class="main-content">
+                <!-- Stats Grid removed -->
+
+                <!-- Dashboard Grid (simplified): Recent Activity + Latest Photos -->
+                <div class="dashboard-grid">
+                    <div>
+                        <div class="activity-section">
+                            <div class="section-header">
+                                <div>
+                                    <div class="section-title">Recent Activity</div>
+                                    <div class="section-subtitle">Latest detection events and snapshots</div>
+                                </div>
+                            </div>
+
+                            <div class="activity-list" id="activityList">
+                                <!-- Real activity items loaded via JavaScript -->
+                                <div class="activity-item">
+                                    <div class="activity-icon">⏳</div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">Loading activity...</div>
+                                        <div class="activity-description">Please wait</div>
+                                        <div class="activity-time">now</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <div class="section-header">
+                                <div>
+                                    <div class="section-title">Latest Photos</div>
+                                    <div class="section-subtitle">Recent snapshots from the system</div>
+                                </div>
+                            </div>
+                            <div class="photo-grid">
+                                {% if images and images|length > 0 %}
+                                    {% for img in images %}
+                                        <div class="photo-thumb">
+                                            <img src="{{ url_for('static', filename='images/' + img) }}" alt="snapshot" />
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="photo-thumb">No photos yet</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[now.getMonth()];
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+
+        // Load real activity log
+        function loadActivity() {
+            fetch('/activity_log')
+            .then(res => res.json())
+            .then(data => {
+                const activityList = document.getElementById('activityList');
+                if (data.activities && data.activities.length > 0) {
+                    activityList.innerHTML = data.activities.map(activity => {
+                        const icon = activity.type === 'snapshot' ? '📸' : 
+                                     activity.type === 'approve' ? '✓' : 
+                                     activity.type === 'deny' ? '✗' : '🔔';
+                        const title = activity.type === 'snapshot' ? 'Snapshot Captured' :
+                                      activity.type === 'approve' ? 'Face Approved' :
+                                      activity.type === 'deny' ? 'Face Denied' : 'Activity';
+                        return `
+                            <div class="activity-item">
+                                <div class="activity-icon">${icon}</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">${title}</div>
+                                    <div class="activity-description">${activity.description}</div>
+                                    <div class="activity-time">${activity.time_ago}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    activityList.innerHTML = `
+                        <div class="activity-item">
+                            <div class="activity-icon">—</div>
+                            <div class="activity-content">
+                                <div class="activity-title">No Activity Yet</div>
+                                <div class="activity-description">Capture snapshots or verify faces to see activity</div>
+                                <div class="activity-time">—</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load activity:', err);
+                document.getElementById('activityList').innerHTML = `
+                    <div class="activity-item">
+                        <div class="activity-icon">⚠</div>
+                        <div class="activity-content">
+                            <div class="activity-title">Failed to Load Activity</div>
+                            <div class="activity-description">Check the server connection</div>
+                            <div class="activity-time">—</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Load activity on page load and refresh every 10 seconds
+        loadActivity();
+        setInterval(loadActivity, 10000);
+    </script>
+</body>
+</html>
