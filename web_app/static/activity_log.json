@@ -1,5 +1,45 @@
 [
   {
+    "type": "approve",
+    "description": "Face approved",
+    "timestamp": "2025-12-07T21:46:18.483795"
+  },
+  {
+    "type": "deny",
+    "description": "Face denied",
+    "timestamp": "2025-12-07T21:45:55.027565"
+  },
+  {
+    "type": "approve",
+    "description": "Face approved",
+    "timestamp": "2025-12-07T21:45:51.579405"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T21-45-34-120Z.jpg",
+    "timestamp": "2025-12-07T21:45:34.229272"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T21-45-20-189Z.jpg",
+    "timestamp": "2025-12-07T21:45:20.366474"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T21-33-58-108Z.jpg",
+    "timestamp": "2025-12-07T21:33:58.313058"
+  },
+  {
+    "type": "approve",
+    "description": "Face approved",
+    "timestamp": "2025-12-07T21:10:46.556248"
+  },
+  {
+    "type": "snapshot",
+    "description": "Snapshot saved: snapshot-2025-12-07T21-10-39-391Z.jpg",
+    "timestamp": "2025-12-07T21:10:39.677463"
+  },
+  {
     "type": "capture",
     "description": "Pi capture received: pi_capture_20251207T202158032371.jpg",
     "timestamp": "2025-12-07T20:21:58.041600"

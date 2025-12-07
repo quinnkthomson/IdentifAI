@@ -26,5 +26,21 @@
   "snapshot-2025-12-07T08-48-48-658Z.jpg": {
     "decision": "approve",
     "timestamp": "2025-12-07T08:48:55.814658"
+  },
+  "snapshot-2025-12-07T21-10-39-391Z.jpg": {
+    "decision": "approve",
+    "timestamp": "2025-12-07T21:10:46.557494"
+  },
+  "snapshot-2025-12-07T21-45-34-120Z.jpg": {
+    "decision": "approve",
+    "timestamp": "2025-12-07T21:45:51.580306"
+  },
+  "snapshot-2025-12-07T21-45-20-189Z.jpg": {
+    "decision": "deny",
+    "timestamp": "2025-12-07T21:45:55.028732"
+  },
+  "snapshot-2025-12-07T21-33-58-108Z.jpg": {
+    "decision": "approve",
+    "timestamp": "2025-12-07T21:46:18.485407"
   }
 }
