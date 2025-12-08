@@ -8,51 +8,208 @@
 
 {% block extra_head %}
     <style>
+        /* Compact stats row at the top */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8f8f8;
+            border: 1px solid #e5e5e5;
+            font-size: 13px;
+        }
+        .stat-badge-number {
+            font-weight: 700;
+            font-size: 16px;
+            color: #000;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-badge-label {
+            color: #666;
+            font-weight: 400;
+        }
+        
+        /* Large slideshow for face detection images */
         .slideshow-card { width: 100%; }
-        .slideshow-wrapper { background: #f5f5f5; padding: 24px; border: 1px solid #e5e5e5; }
-        .slideshow-container { position: relative; width: 100%; min-height: 360px; display: flex; align-items: center; justify-content: center; }
-        .slide { width: 100%; height: 100%; display: none; align-items: center; justify-content: center; }
+        .slideshow-wrapper {
+            background: #000;
+            padding: 0;
+            border: 1px solid #e5e5e5;
+            position: relative;
+        }
+        .slideshow-container {
+            position: relative;
+            width: 100%;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+        }
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
         .slide.active { display: flex; }
-        .slide img { max-width: 100%; max-height: 70vh; object-fit: contain; border: 1px solid #e5e5e5; background: #fff; }
-        .slide-nav { position: absolute; display: flex; gap: 12px; bottom: 16px; left: 16px; }
-        .nav-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e5e5; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .slide-counter { position: absolute; bottom: 16px; right: 16px; font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
-        .slide-timestamp { font-family: 'JetBrains Mono', monospace; color: #777; }
-        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
-        .stat-card { background: #fff; border: 1px solid #e5e5e5; padding: 24px; text-align: center; border-radius: 8px; }
-        .stat-number { font-size: 32px; font-weight: 700; color: #000; margin-bottom: 8px; }
-        .stat-label { font-size: 14px; color: #666; font-weight: 500; }
-        .face-detection-overlay { position: absolute; top: 16px; left: 16px; background: rgba(0, 0, 0, 0.8); color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        .face-count-badge { background: #ff4444; color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-        .no-images-subtitle { font-size: 14px; color: #999; margin-top: 8px; }
-        @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } .slide img { max-height: 60vh; } }
+        .slide img {
+            max-width: 100%;
+            max-height: 75vh;
+            min-height: 400px;
+            object-fit: contain;
+            background: #000;
+        }
+        .slide-nav {
+            position: absolute;
+            display: flex;
+            gap: 8px;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+        .nav-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover {
+            background: #fff;
+            transform: scale(1.05);
+        }
+        .slide-counter {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 13px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 14px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .slide-timestamp {
+            font-family: 'JetBrains Mono', monospace;
+            color: #ccc;
+            font-size: 11px;
+        }
+        .face-detection-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 10;
+        }
+        .face-count-badge {
+            background: #22c55e;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .no-images {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            color: #666;
+        }
+        .no-images-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .no-images-subtitle {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        /* Compact activity sidebar */
+        .activity-section {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .activity-list {
+            gap: 12px;
+        }
+        .activity-item {
+            padding-bottom: 12px;
+            gap: 12px;
+        }
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+        .activity-title {
+            font-size: 14px;
+        }
+        .activity-description {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .activity-time {
+            font-size: 11px;
+        }
+        
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .slideshow-container { min-height: 400px; }
+            .slide img { max-height: 60vh; min-height: 300px; }
+            .activity-section { max-height: none; }
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-    <div class="content-area">
+    <div class="content-area dashboard-page">
         <div class="content-header">
-            <div class="content-title">Face Detection Dashboard</div>
+            <div class="content-title">Dashboard</div>
             <div class="content-description">
-                Monitor face detection events and system activity.
+                Monitor face detection events and browse captured images.
             </div>
         </div>
 
         <div class="main-content">
-            <!-- Statistics Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number">{{ stats.face_events }}</div>
-                    <div class="stat-label">Face Detection Events</div>
+            <!-- Compact Statistics Row -->
+            <div class="stats-row">
+                <div class="stat-badge">
+                    <span class="stat-badge-number">{{ stats.face_events }}</span>
+                    <span class="stat-badge-label">Face Events</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number">{{ stats.total_faces }}</div>
-                    <div class="stat-label">Total Faces Detected</div>
+                <div class="stat-badge">
+                    <span class="stat-badge-number">{{ stats.total_faces }}</span>
+                    <span class="stat-badge-label">Faces Detected</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number">{{ stats.total_events }}</div>
-                    <div class="stat-label">Total Images Processed</div>
+                <div class="stat-badge">
+                    <span class="stat-badge-number">{{ stats.total_events }}</span>
+                    <span class="stat-badge-label">Images Processed</span>
                 </div>
             </div>
 
@@ -60,8 +217,8 @@
                 <div class="slideshow-card">
                     <div class="section-header">
                         <div>
-                            <div class="section-title">Face Detection Events</div>
-                            <div class="section-subtitle">Browse images where faces were detected</div>
+                            <div class="section-title">Face Detection Gallery</div>
+                            <div class="section-subtitle">{{ face_events|length if face_events else 0 }} images with detected faces</div>
                         </div>
                     </div>
                     {% if face_events and face_events|length > 0 %}
@@ -69,15 +226,22 @@
                         <div class="slideshow-container">
                             {% for event in face_events %}
                                 <div class="slide {% if loop.first %}active{% endif %}" data-image="{{ event.file }}" data-timestamp="{{ event.timestamp }}" data-face-count="{{ event.face_count }}">
-                                    <img src="{{ url_for('static', filename='images/' + event.file) }}" alt="face detection event" />
+                                    <img src="{{ url_for('static', filename='images/' + event.file) }}" 
+                                         alt="Face detection - {{ event.face_count }} face(s)" 
+                                         loading="lazy"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                    <div class="no-images" style="display: none; position: absolute; inset: 0; background: #222;">
+                                        <div class="no-images-text" style="color: #888;">Image not found</div>
+                                        <div class="no-images-subtitle">{{ event.file }}</div>
+                                    </div>
                                     <div class="face-detection-overlay">
-                                        <span class="face-count-badge">{{ event.face_count }} face{{ 's' if event.face_count != 1 else '' }} detected</span>
+                                        <span class="face-count-badge">{{ event.face_count }} face{{ 's' if event.face_count != 1 else '' }}</span>
                                     </div>
                                 </div>
                             {% endfor %}
                             <div class="slide-nav">
-                                <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
-                                <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
+                                <button class="nav-btn" id="prevBtn" onclick="prevSlide()" title="Previous (←)">←</button>
+                                <button class="nav-btn" id="nextBtn" onclick="nextSlide()" title="Next (→)">→</button>
                             </div>
                             <div class="slide-counter">
                                 <span id="currentSlide">1</span> / <span id="totalSlides">{{ face_events|length }}</span>
@@ -86,10 +250,10 @@
                         </div>
                     </div>
                     {% else %}
-                        <div class="slideshow-wrapper">
+                        <div class="slideshow-wrapper" style="background: #f5f5f5;">
                             <div class="no-images">
                                 <div class="no-images-text">No face detection events yet</div>
-                                <div class="no-images-subtitle">Images with detected faces will appear here</div>
+                                <div class="no-images-subtitle">Start capture.py to begin detecting faces</div>
                             </div>
                         </div>
                     {% endif %}

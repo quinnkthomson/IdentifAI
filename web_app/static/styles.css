@@ -368,41 +368,52 @@ body {
     flex-direction: column;
 }
 
-/* Dashboard-specific: center content (match Stream page) but keep single-column layout */
-.main-layout .content-header,
-.main-layout .main-content {
-    max-width: none;
+/* Dashboard page styling - uses full width */
+.dashboard-page .content-header {
+    max-width: 1400px;
     width: 100%;
-    margin: 0;
-    padding-left: 32px;
-    padding-right: 32px;
+    margin: 0 auto;
+    padding: 40px 32px 24px;
 }
 
-.main-layout .main-content {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    padding-top: 24px;
-    padding-bottom: 80px;
+.dashboard-page .content-title {
+    font-size: 48px;
+    margin-bottom: 12px;
 }
 
-/* Ensure the dashboard content description aligns left instead of right */
-.main-layout .content-description {
+.dashboard-page .main-content {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    display: block;
+    padding: 0 32px 80px;
+    margin-top: 0;
+}
+
+/* Ensure the dashboard content description aligns left */
+.dashboard-page .content-description {
     text-align: left;
     margin-left: 0;
     margin-right: 0;
 }
 
+/* Activity more button container */
+.activity-more {
+    margin-top: 16px;
+    text-align: center;
+}
+
 /* Stats Grid */
 /* Stats Grid (removed) */
 
-/* Dashboard Grid */
+/* Dashboard Grid - slideshow takes most space, activity sidebar is compact */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 24px;
-    margin-top: 40px;
+    grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+    gap: 32px;
+    margin-top: 24px;
     width: 100%;
+    align-items: start;
 }
 
 /* Activity Section */
@@ -435,7 +446,9 @@ body {
     margin-top: 4px;
 }
 
-.btn {
+/* General button - used in activity section */
+.activity-more .btn,
+.section-header .btn {
     padding: 8px 16px;
     background: transparent;
     border: 1px solid #e5e5e5;
@@ -451,7 +464,8 @@ body {
     text-decoration: none;
 }
 
-.btn:hover {
+.activity-more .btn:hover,
+.section-header .btn:hover {
     border-color: #000;
     background: #000;
     color: #fff;

@@ -73,9 +73,11 @@ def get_face_events_with_faces(limit=50):
         cur.execute("SELECT * FROM face_events WHERE faces_detected = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
         events = cur.fetchall()
         conn.close()
-        return events
+        # Convert Row objects to dicts for easier access
+        return [dict(event) for event in events]
     except Exception as e:
         # Return empty list on error instead of crashing
+        print(f"Database error in get_face_events_with_faces: {e}")
         return []
 
 def get_face_detection_stats():

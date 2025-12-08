@@ -29,11 +29,12 @@ instance/
 # ----------------------------
 # Captured Images & Video
 # ----------------------------
-*.jpg
-*.jpeg
-*.png
-*.mp4
-web_app/static/images/
+web_app/static/images/*.jpg
+web_app/static/images/*.jpeg
+web_app/static/images/*.png
+web_app/static/videos/*.mp4
+!web_app/static/images/.gitkeep
+!web_app/static/videos/.gitkeep
 
 # ----------------------------
 # Raspberry Pi Captures
