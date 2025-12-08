@@ -92,14 +92,14 @@ def init_face_detector():
         raise FileNotFoundError(f"Could not find or load Haar cascade file. Tried paths: {POSSIBLE_CASCADE_PATHS}")
     return face_cascade
 
-def detect_faces(image_path: str, scale_factor: float = 1.1, min_neighbors: int = 5) -> List[Tuple[int, int, int, int]]:
+def detect_faces(image_path: str, scale_factor: float = 1.3, min_neighbors: int = 8) -> List[Tuple[int, int, int, int]]:
     """
     Detect faces in an image using Haar cascades.
 
     Args:
         image_path: Path to the image file
-        scale_factor: Parameter specifying how much the image size is reduced at each image scale
-        min_neighbors: Parameter specifying how many neighbors each candidate rectangle should have
+        scale_factor: How much image size is reduced at each scale (higher = faster, less accurate)
+        min_neighbors: How many neighbors each candidate needs (higher = fewer false positives)
 
     Returns:
         List of tuples (x, y, width, height) for each detected face
@@ -117,15 +117,22 @@ def detect_faces(image_path: str, scale_factor: float = 1.1, min_neighbors: int 
         # Convert to grayscale for face detection
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        # Detect faces
+        # Detect faces with STRICTER parameters to reduce false positives
+        # - scale_factor 1.3: Faster processing, still accurate
+        # - min_neighbors 8: Requires more confirmations (reduces false positives)
+        # - minSize (60, 60): Ignore very small detections (noise)
         faces = cascade.detectMultiScale(
             gray,
             scaleFactor=scale_factor,
             minNeighbors=min_neighbors,
-            minSize=(30, 30)
+            minSize=(60, 60),  # Increased from 30x30 to reduce false positives
+            flags=cv2.CASCADE_SCALE_IMAGE
         )
 
         # Convert numpy arrays to tuples
+        if len(faces) == 0:
+            return []
+        
         face_rectangles = [(int(x), int(y), int(w), int(h)) for (x, y, w, h) in faces]
 
         return face_rectangles

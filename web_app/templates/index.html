@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}IdentifAI - Live Stream{% endblock %}
+{% block title %}IdentifAI - Camera Feed{% endblock %}
 
 {% block header_actions %}
     <a href="/dashboard" class="btn-primary">View Dashboard</a>
@@ -10,9 +10,9 @@
     <!-- Content Area -->
     <div class="content-area">
         <div class="content-header">
-            <div class="content-title">Camera Stream</div>
+            <div class="content-title">Camera Feed</div>
             <div class="content-description">
-                Real-time face detection system providing live video feed and monitoring capabilities.
+                Face detection system showing latest captured frames. Updates every 30 seconds.
             </div>
         </div>
 
@@ -54,14 +54,14 @@
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-card-title">Stream Info</div>
+                    <div class="stat-card-title">Capture Info</div>
                     <div class="stat-item">
                         <span class="stat-label">Resolution</span>
                         <span class="stat-value">{{ config.CAMERA_WIDTH }}×{{ config.CAMERA_HEIGHT }}</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">FPS</span>
-                        <span class="stat-value">~30</span>
+                        <span class="stat-label">Interval</span>
+                        <span class="stat-value">30 sec</span>
                     </div>
                 </div>
 

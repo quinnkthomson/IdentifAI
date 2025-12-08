@@ -2,9 +2,8 @@
 capture.py
 ----------
 Main loop running on the Raspberry Pi. Handles camera initialization, continuous
-frame capture, and motion detection. When motion is detected, this script saves
-an image locally and sends an event (including timestamp and file path) to the
-Flask backend. This is the core data-producing component of the system.
+frame capture, and face detection. Saves images locally and sends events to the
+Flask backend.
 """
 
 import os
@@ -23,8 +22,8 @@ except ImportError:
 
 from config import *
 from cv_model import has_faces, get_face_count
-from cv_model import has_faces, get_face_count
 from utils import setup_logging, ensure_directory, get_iso_timestamp
+import shutil
 
 class MockCamera:
     """Mock camera for testing when picamera2 is not available"""
@@ -36,14 +35,12 @@ class MockCamera:
         print("Mock camera started")
 
     def capture_file(self, filename):
-        # Mock capture - don't write files, just simulate successful capture
-        # This avoids unnecessary disk I/O in demo mode
-        print(f"Mock capture: {filename} (no file written)")
-        # Create an empty file to satisfy file existence checks
+        # Mock capture - create minimal placeholder file
+        print(f"Mock capture: {filename}")
         try:
             Path(filename).touch()
         except:
-            pass  # Ignore if we can't create the file
+            pass
 
     def stop(self):
         self.is_open = False
@@ -73,7 +70,7 @@ def setup_camera():
         print("Falling back to mock camera for testing")
         return MockCamera()
 
-def capture_image(camera):
+def capture_image(camera, is_mock=False):
     """Capture an image and return the filename"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{CAPTURE_DIR}/capture_{timestamp}.jpg"
@@ -81,37 +78,39 @@ def capture_image(camera):
     try:
         camera.capture_file(filename)
         logging.info(f"Image captured: {filename}")
+        
+        # Copy to latest_frame.jpg for web display (only for real captures)
+        if not is_mock and os.path.exists(filename) and os.path.getsize(filename) > 0:
+            try:
+                latest_path = LATEST_FRAME_PATH
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(latest_path), exist_ok=True)
+                shutil.copy2(filename, latest_path)
+                logging.debug(f"Updated latest frame: {latest_path}")
+            except Exception as e:
+                logging.warning(f"Could not update latest frame: {e}")
+        
         return filename
     except Exception as e:
         logging.error(f"Failed to capture image: {e}")
-        # If this is a real camera, try to restart it
-        if hasattr(camera, 'stop') and hasattr(camera, 'start') and not isinstance(camera, MockCamera):
-            try:
-                logging.info("Attempting to restart camera...")
-                camera.stop()
-                import time
-                time.sleep(1)
-                camera.start()
-                logging.info("Camera restarted successfully")
-            except Exception as restart_error:
-                logging.error(f"Failed to restart camera: {restart_error}")
         return None
 
 def send_to_backend(image_path, is_mock=False):
     """Send captured image data to the Flask backend"""
     try:
-        # Skip expensive face detection for mock captures or when disabled
+        # Skip face detection for mock captures or when disabled
         if is_mock or not ENABLE_FACE_DETECTION:
             faces_detected = False
             face_count = 0
-            if is_mock:
-                logging.debug(f"Mock capture sent: {image_path}")
-            else:
-                logging.debug(f"Image captured (face detection disabled): {image_path}")
         else:
-            # Perform face detection only for real captures with detection enabled
+            # Perform face detection for real captures
             faces_detected = has_faces(image_path)
             face_count = get_face_count(image_path) if faces_detected else 0
+
+        # Only send if file exists and has content
+        if not os.path.exists(image_path) or os.path.getsize(image_path) == 0:
+            logging.debug(f"Skipping empty file: {image_path}")
+            return False
 
         with open(image_path, 'rb') as image_file:
             files = {'file': image_file}
@@ -125,12 +124,10 @@ def send_to_backend(image_path, is_mock=False):
             response = requests.post(f"{BACKEND_URL}/pi_capture", files=files, data=data, timeout=BACKEND_TIMEOUT)
             if response.status_code == 201:
                 if faces_detected:
-                    logging.info(f"Face detection event: {face_count} faces in {image_path}")
-                elif ENABLE_FACE_DETECTION and not is_mock:
-                    logging.debug(f"Image processed, no faces detected: {image_path}")
+                    logging.info(f"✅ Face detected: {face_count} faces in {image_path}")
                 return True
             else:
-                logging.error(f"Failed to send to backend: {response.status_code} - {response.text}")
+                logging.error(f"Failed to send to backend: {response.status_code}")
                 return False
     except Exception as e:
         logging.error(f"Error sending to backend: {e}")
@@ -139,7 +136,11 @@ def send_to_backend(image_path, is_mock=False):
 def main():
     """Main capture loop"""
     setup_logging(LOG_FILE, logging.DEBUG if DEBUG_MODE else logging.INFO)
+    logging.info("=" * 50)
     logging.info("Starting Raspberry Pi capture service...")
+    logging.info(f"Face detection: {'ENABLED' if ENABLE_FACE_DETECTION else 'DISABLED'}")
+    logging.info(f"Capture interval: {CAPTURE_INTERVAL} seconds")
+    logging.info("=" * 50)
 
     # Setup
     ensure_directory(CAPTURE_DIR)
@@ -147,96 +148,31 @@ def main():
 
     try:
         camera.start()
-        logging.info(f"Camera initialized. Capturing every {CAPTURE_INTERVAL} seconds...")
-    except Exception as e:
-        logging.error(f"Failed to start camera: {e}")
-        if isinstance(camera, MockCamera):
-            logging.info("Using mock camera - no real camera available")
-            logging.info(f"Mock capture mode. Capturing every {CAPTURE_INTERVAL} seconds...")
+        using_mock = isinstance(camera, MockCamera)
+        
+        if using_mock:
+            logging.info("🎭 Running in MOCK mode - no real camera")
         else:
-            logging.error("Real camera failed to start. Switching to mock camera for testing.")
-            # Switch to mock camera
-            camera = MockCamera()
-            camera.start()
-            logging.info("Mock camera activated. System will run in demo mode.")
+            logging.info("📷 Camera ready - capturing real images")
 
-    # Determine if we're using mock camera
-    using_mock = isinstance(camera, MockCamera)
+        capture_count = 0
 
-    try:
         while True:
-            # Capture image
-            image_path = capture_image(camera)
+            image_path = capture_image(camera, is_mock=using_mock)
             if image_path:
-                # Send to backend (skip face detection for mock captures)
                 send_to_backend(image_path, is_mock=using_mock)
+                capture_count += 1
+                
+                if capture_count % 5 == 0:
+                    logging.info(f"📊 Captures completed: {capture_count}")
 
-            # Wait before next capture
             time.sleep(CAPTURE_INTERVAL)
 
     except KeyboardInterrupt:
         logging.info("Stopping capture service...")
     finally:
         camera.stop()
-
-def main():
-    """Main capture loop"""
-    setup_logging(LOG_FILE, logging.DEBUG if DEBUG_MODE else logging.INFO)
-    logging.info("Starting Raspberry Pi capture service...")
-    logging.info(f"Face detection enabled: {ENABLE_FACE_DETECTION}")
-    logging.info(f"Capture interval: {CAPTURE_INTERVAL} seconds")
-
-    # Setup
-    ensure_directory(CAPTURE_DIR)
-    camera = setup_camera()
-
-    try:
-        camera.start()
-        logging.info(f"Camera initialized. Capturing every {CAPTURE_INTERVAL} seconds...")
-
-        # Determine if we're using mock camera
-        using_mock = isinstance(camera, MockCamera)
-        if using_mock:
-            logging.info("Using mock camera - face detection will be simulated")
-
-        # Performance tracking
-        capture_count = 0
-        start_time = time.time()
-
-        # Main capture loop
-        try:
-            while True:
-                # Capture image
-                image_path = capture_image(camera)
-                if image_path:
-                    # Send to backend (skip face detection for mock captures)
-                    send_to_backend(image_path, is_mock=using_mock)
-                    capture_count += 1
-
-                    # Log performance every 10 captures
-                    if capture_count % 10 == 0:
-                        elapsed = time.time() - start_time
-                        rate = capture_count / elapsed if elapsed > 0 else 0
-                        logging.info(".1f")
-
-                # Wait before next capture
-                time.sleep(CAPTURE_INTERVAL)
-
-        except KeyboardInterrupt:
-            logging.info("Stopping capture service...")
-            total_time = time.time() - start_time
-            if total_time > 0:
-                final_rate = capture_count / total_time
-                logging.info(".1f")
-        finally:
-            camera.stop()
-
-    except Exception as e:
-        logging.error(f"Failed to start camera service: {e}")
-        if isinstance(camera, MockCamera):
-            logging.info("Running in demo mode - no camera required")
-        else:
-            raise
+        logging.info("Capture service stopped")
 
 if __name__ == "__main__":
     main()

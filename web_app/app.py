@@ -164,72 +164,66 @@ def dashboard():
         return render_template('dashboard.html', face_events=[], stats={'face_events': 0, 'total_faces': 0, 'total_events': 0})
 
 
-# --- Video Streaming Functions (from your app.py) ---
+# --- Video Streaming Functions ---
+
+LATEST_FRAME_PATH = os.path.join(IMAGES_DIR, 'latest_frame.jpg')
 
 def generate_frames():
-    """Generates JPEG frames from the camera for the web stream."""
-    global picam2
-    
-    # Generate placeholder frame once (cache it)
-    width, height = CAMERA_WIDTH, CAMERA_HEIGHT
-    img = Image.new('RGB', (width, height), color='#2a2a2a')
-
-    try:
-        from PIL import ImageDraw, ImageFont
-        draw = ImageDraw.Draw(img)
-
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-        except:
-            try:
-                font = ImageFont.load_default()
-            except:
-                font = None
-
-        messages = [
-            "Camera Stream Unavailable",
-            "",
-            "Camera is being used by face detection service",
-            "",
-            "View face detection events on Dashboard:",
-            "http://localhost:5001/dashboard"
-        ]
-
-        if font:
-            y_offset = 80
-            for message in messages:
-                if message == "":
-                    y_offset += 10
-                    continue
-                try:
-                    bbox = draw.textbbox((0, 0), message, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    x = (width - text_width) // 2
-                    draw.text((x, y_offset), message, fill='white', font=font)
-                    y_offset += 25
-                except:
-                    pass
-    except:
-        pass
-
-    img_io = BytesIO()
-    img.save(img_io, 'JPEG', quality=75)
-    placeholder_frame = img_io.getvalue()
-
-    # Always use placeholder - capture.py handles camera
-    frame_data = b'--frame\r\n' + b'Content-Type: image/jpeg\r\n\r\n' + placeholder_frame + b'\r\n'
+    """Serves the latest captured frame as a pseudo-stream."""
+    last_mtime = 0
     
     while True:
         try:
-            yield frame_data
-            time.sleep(5)  # Update every 5 seconds (minimal CPU usage)
+            # Check if latest frame exists
+            if os.path.exists(LATEST_FRAME_PATH):
+                current_mtime = os.path.getmtime(LATEST_FRAME_PATH)
+                
+                # Read the latest frame
+                with open(LATEST_FRAME_PATH, 'rb') as f:
+                    frame = f.read()
+                
+                if len(frame) > 0:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                    last_mtime = current_mtime
+            else:
+                # Show placeholder if no frame available yet
+                width, height = CAMERA_WIDTH, CAMERA_HEIGHT
+                img = Image.new('RGB', (width, height), color='#2a2a2a')
+                
+                try:
+                    from PIL import ImageDraw, ImageFont
+                    draw = ImageDraw.Draw(img)
+                    try:
+                        font = ImageFont.load_default()
+                    except:
+                        font = None
+                    
+                    if font:
+                        messages = ["Waiting for camera...", "", "Make sure capture.py is running"]
+                        y = 100
+                        for msg in messages:
+                            if msg:
+                                draw.text((50, y), msg, fill='white', font=font)
+                            y += 30
+                except:
+                    pass
+                
+                img_io = BytesIO()
+                img.save(img_io, 'JPEG', quality=75)
+                frame = img_io.getvalue()
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            
+            time.sleep(2)  # Check for new frame every 2 seconds
+            
         except Exception as e:
             app.logger.error(f"Stream error: {e}")
-            time.sleep(5)
+            time.sleep(2)
 
 @app.route('/video_feed')
 def video_feed():
-    """Return the video stream from the camera."""
+    """Return the latest captured frame as a stream."""
     return Response(generate_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 

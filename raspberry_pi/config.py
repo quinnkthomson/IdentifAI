@@ -13,8 +13,11 @@ CAMERA_FRAMERATE = 30
 
 # Capture settings
 CAPTURE_DIR = "captured_images"
-CAPTURE_INTERVAL = 10  # Seconds between captures (increased to reduce detection frequency)
+CAPTURE_INTERVAL = 30  # Seconds between captures (30s = ~2 per minute, much less spam)
 IMAGE_QUALITY = 85
+
+# Latest frame for web display (saved to web_app for streaming)
+LATEST_FRAME_PATH = "../web_app/static/images/latest_frame.jpg"
 
 # Backend communication
 BACKEND_URL = "http://localhost:5001"  # Flask app URL
