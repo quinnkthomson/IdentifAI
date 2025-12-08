@@ -19,8 +19,11 @@
         </div>
         <div class="header-right">
             <div class="nav-links">
-                <a href="/" class="nav-link{% if request.path == '/' %} active{% endif %}">Stream</a>
-                <a href="/dashboard" class="nav-link{% if request.path == '/dashboard' %} active{% endif %}">Dashboard</a>
+                {% if request.path == '/' %}
+                <span class="nav-link active">Stream</span>
+                {% elif request.path == '/dashboard' %}
+                <span class="nav-link active">Dashboard</span>
+                {% endif %}
             </div>
             {% block header_actions %}{% endblock %}
         </div>
