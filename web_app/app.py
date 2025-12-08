@@ -10,7 +10,7 @@ from flask import Flask, render_template, request, jsonify, url_for, send_file, 
 from werkzeug.utils import secure_filename
 from PIL import Image
 from datetime import timezone
-from database import log_face_event, get_face_events_with_faces, get_face_detection_stats
+from database import init_db, log_face_event, get_face_events_with_faces, get_face_detection_stats
 
 # Imports for Camera and Video Recording
 # NOTE: You must have 'picamera2[full]' installed for the encoders to work:
@@ -327,10 +327,6 @@ def start_recording():
 def stop_recording():
     global picam2, is_recording, recording_filename, encoder, output
     return jsonify({'message': 'Recording is always on; stop not permitted'}), 405
-
-# Placeholder for your database init (to prevent errors)
-def init_db():
-    pass
 
 # Initialize database on startup
 with app.app_context():
