@@ -24,38 +24,16 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Create events table
+    # Create face detection events table
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS events (
+        CREATE TABLE IF NOT EXISTS face_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
             image_path TEXT NOT NULL,
-            is_motion BOOLEAN NOT NULL,
-            is_person BOOLEAN NOT NULL,
-            is_known BOOLEAN NOT NULL,
-            person_name TEXT,
-            label TEXT NOT NULL,
-            confidence REAL NOT NULL,
-            metadata TEXT
-        )
-    """)
-
-    # Create users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            is_admin BOOLEAN NOT NULL DEFAULT FALSE
-        )
-    """)
-
-    # Create known people table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS known_people (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            image_path TEXT NOT NULL
+            faces_detected BOOLEAN NOT NULL,
+            face_count INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            processed BOOLEAN NOT NULL DEFAULT FALSE
         )
     """)
 
@@ -63,27 +41,63 @@ def init_db():
     conn.close()
 
 # ------------------------------------------------------------
-# Event Functions
+# Face Detection Event Functions
 # ------------------------------------------------------------
-def log_event(timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata):
+def log_face_event(timestamp, image_path, faces_detected, face_count, source):
+    """Log a face detection event"""
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO events (timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (timestamp, image_path, is_motion, is_person, is_known, person_name, label, confidence, metadata))
+        INSERT INTO face_events (timestamp, image_path, faces_detected, face_count, source, processed)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (timestamp, image_path, faces_detected, face_count, source, False))
 
     conn.commit()
     conn.close()
 
-def get_events(limit=10):
+def get_face_events(limit=50):
+    """Get face detection events, ordered by timestamp descending"""
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM events ORDER BY timestamp DESC LIMIT ?", (limit,))
+    cur.execute("SELECT * FROM face_events ORDER BY timestamp DESC LIMIT ?", (limit,))
     events = cur.fetchall()
     conn.close()
     return events
+
+def get_face_events_with_faces(limit=50):
+    """Get only events where faces were detected"""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM face_events WHERE faces_detected = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
+    events = cur.fetchall()
+    conn.close()
+    return events
+
+def get_face_detection_stats():
+    """Get statistics about face detection events"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Total events
+    cur.execute("SELECT COUNT(*) as total_events FROM face_events")
+    total_events = cur.fetchone()['total_events']
+
+    # Events with faces
+    cur.execute("SELECT COUNT(*) as face_events FROM face_events WHERE faces_detected = 1")
+    face_events = cur.fetchone()['face_events']
+
+    # Total faces detected
+    cur.execute("SELECT SUM(face_count) as total_faces FROM face_events")
+    total_faces = cur.fetchone()['total_faces'] or 0
+
+    conn.close()
+
+    return {
+        'total_events': total_events,
+        'face_events': face_events,
+        'total_faces': total_faces
+    }
 
 
 

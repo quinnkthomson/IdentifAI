@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, jsonify, url_for, send_file, 
 from werkzeug.utils import secure_filename
 from PIL import Image
 from datetime import timezone
+from database import log_face_event, get_face_events_with_faces, get_face_detection_stats
 
 # Imports for Camera and Video Recording
 # NOTE: You must have 'picamera2[full]' installed for the encoders to work:
@@ -42,15 +43,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 VIDEO_DIR = os.path.join(app.static_folder, 'videos')
 IMAGES_DIR = os.path.join(app.static_folder, 'images')
 ACTIVITY_LOG_PATH = os.path.join(app.static_folder, 'activity_log.json')
-VERIFICATION_HISTORY_PATH = os.path.join(app.static_folder, 'verification_history.json')
 os.makedirs(VIDEO_DIR, exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)
 if not os.path.exists(ACTIVITY_LOG_PATH):
     with open(ACTIVITY_LOG_PATH, 'w', encoding='utf-8') as f:
         json.dump({"activities": []}, f)
-if not os.path.exists(VERIFICATION_HISTORY_PATH):
-    with open(VERIFICATION_HISTORY_PATH, 'w', encoding='utf-8') as f:
-        json.dump({"verifications": []}, f)
 
 # Camera State Variables
 picam2 = None
@@ -158,37 +155,25 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    images = sorted(os.listdir(IMAGES_DIR)) if os.path.exists(IMAGES_DIR) else []
-    images = [img for img in images if img.lower().endswith(('.jpg', '.jpeg', '.png'))]
-    images = list(reversed(images))
+    # Get face detection events (only those with faces detected)
+    face_events = get_face_events_with_faces(limit=100)
 
-    # Map file -> timestamp from verification history; fallback to file mtime
-    history = {}
-    try:
-        with open(VERIFICATION_HISTORY_PATH, 'r', encoding='utf-8') as vf:
-            data = json.load(vf)
-            for item in data.get('verifications', []):
-                history[os.path.basename(item.get('file', ''))] = item.get('timestamp')
-    except Exception:
-        pass
+    # Convert to format expected by template
+    face_events_data = []
+    for event in face_events:
+        face_events_data.append({
+            "id": event["id"],
+            "file": event["image_path"].replace("images/", ""),
+            "timestamp": event["timestamp"],
+            "face_count": event["face_count"],
+            "source": event["source"]
+        })
 
-    images_with_times = []
-    for img in images:
-        ts = history.get(img)
-        if not ts:
-            try:
-                mtime = os.path.getmtime(os.path.join(IMAGES_DIR, img))
-                ts = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-            except Exception:
-                ts = ""
-        images_with_times.append({"file": img, "timestamp": ts})
+    # Get statistics
+    stats = get_face_detection_stats()
 
-    return render_template('dashboard.html', images=images_with_times)
+    return render_template('dashboard.html', face_events=face_events_data, stats=stats)
 
-
-@app.route('/verification')
-def verification():
-    return redirect(url_for('dashboard'))
 
 # --- Video Streaming Functions (from your app.py) ---
 
@@ -249,24 +234,54 @@ def save_snapshot():
 
         log_activity('snapshot', f'Snapshot saved: {filename}', image=f'images/{filename}')
 
-        try:
-            with open(VERIFICATION_HISTORY_PATH, 'r+', encoding='utf-8') as vf:
-                data = json.load(vf)
-                items = data.get('verifications', [])
-                items.insert(0, {
-                    "file": f'images/{filename}',
-                    "timestamp": datetime.utcnow().isoformat() + 'Z'
-                })
-                items = items[:100]
-                vf.seek(0)
-                json.dump({"verifications": items}, vf)
-                vf.truncate()
-        except Exception as e:  # best-effort
-            app.logger.warning(f"Failed to update verification history: {e}")
-
         return jsonify({"success": True, "url": url_for('static', filename=f'images/{filename}')})
     except Exception as e:
         app.logger.error(f"Failed to save snapshot: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/pi_capture', methods=['POST'])
+def pi_capture():
+    """Receive image and face detection data from Raspberry Pi"""
+    try:
+        # Get form data
+        timestamp = request.form.get('timestamp')
+        source = request.form.get('source', 'raspberry_pi')
+        faces_detected = request.form.get('faces_detected', 'false').lower() == 'true'
+        face_count = int(request.form.get('face_count', '0'))
+
+        # Save uploaded file
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file provided"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No file selected"}), 400
+
+        # Generate secure filename with timestamp
+        ts = datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S-%fZ')
+        filename = secure_filename(f"pi_capture_{ts}.jpg")
+        filepath = os.path.join(IMAGES_DIR, filename)
+
+        # Save the file
+        file.save(filepath)
+
+        # Log face detection event in database
+        image_path = f'images/{filename}'
+        log_face_event(timestamp, image_path, faces_detected, face_count, source)
+
+        # Log activity
+        if faces_detected:
+            log_activity('face_detected', f'Face detected: {face_count} faces in image', image=image_path)
+            app.logger.info(f"Face detection event logged: {face_count} faces in {filename}")
+        else:
+            log_activity('image_captured', f'Image captured from {source}', image=image_path)
+            app.logger.info(f"Image captured from {source}: {filename}")
+
+        return jsonify({"success": True, "message": "Image and detection data received"}), 201
+
+    except Exception as e:
+        app.logger.error(f"Failed to process Pi capture: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 

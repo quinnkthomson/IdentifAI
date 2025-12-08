@@ -20,6 +20,13 @@
         .slide-counter { position: absolute; bottom: 16px; right: 16px; font-size: 13px; color: #555; display: flex; align-items: center; gap: 8px; }
         .slide-timestamp { font-family: 'JetBrains Mono', monospace; color: #777; }
         .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #fff; border: 1px solid #e5e5e5; padding: 24px; text-align: center; border-radius: 8px; }
+        .stat-number { font-size: 32px; font-weight: 700; color: #000; margin-bottom: 8px; }
+        .stat-label { font-size: 14px; color: #666; font-weight: 500; }
+        .face-detection-overlay { position: absolute; top: 16px; left: 16px; background: rgba(0, 0, 0, 0.8); color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .face-count-badge { background: #ff4444; color: #fff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .no-images-subtitle { font-size: 14px; color: #999; margin-top: 8px; }
         @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } .slide img { max-height: 60vh; } }
     </style>
 </head>
@@ -40,27 +47,46 @@
 
     <div class="content-area">
         <div class="content-header">
-            <div class="content-title">Dashboard</div>
+            <div class="content-title">Face Detection Dashboard</div>
             <div class="content-description">
-                Live snapshots slideshow plus recent activity.
+                Monitor face detection events and system activity.
             </div>
         </div>
 
         <div class="main-content">
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.face_events }}</div>
+                    <div class="stat-label">Face Detection Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total_faces }}</div>
+                    <div class="stat-label">Total Faces Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.total_events }}</div>
+                    <div class="stat-label">Total Images Processed</div>
+                </div>
+            </div>
+
             <div class="dashboard-grid">
                 <div class="slideshow-card">
                     <div class="section-header">
                         <div>
-                            <div class="section-title">Snapshots Slideshow</div>
-                            <div class="section-subtitle">Navigate recent captures</div>
+                            <div class="section-title">Face Detection Events</div>
+                            <div class="section-subtitle">Browse images where faces were detected</div>
                         </div>
                     </div>
-                    {% if images and images|length > 0 %}
+                    {% if face_events and face_events|length > 0 %}
                     <div class="slideshow-wrapper">
                         <div class="slideshow-container">
-                            {% for item in images %}
-                                <div class="slide {% if loop.first %}active{% endif %}" data-image="{{ item.file }}" data-timestamp="{{ item.timestamp }}">
-                                    <img src="{{ url_for('static', filename='images/' + item.file) }}" alt="snapshot" />
+                            {% for event in face_events %}
+                                <div class="slide {% if loop.first %}active{% endif %}" data-image="{{ event.file }}" data-timestamp="{{ event.timestamp }}" data-face-count="{{ event.face_count }}">
+                                    <img src="{{ url_for('static', filename='images/' + event.file) }}" alt="face detection event" />
+                                    <div class="face-detection-overlay">
+                                        <span class="face-count-badge">{{ event.face_count }} face{{ 's' if event.face_count != 1 else '' }} detected</span>
+                                    </div>
                                 </div>
                             {% endfor %}
                             <div class="slide-nav">
@@ -68,7 +94,7 @@
                                 <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
                             </div>
                             <div class="slide-counter">
-                                <span id="currentSlide">1</span> / <span id="totalSlides">{{ images|length }}</span>
+                                <span id="currentSlide">1</span> / <span id="totalSlides">{{ face_events|length }}</span>
                                 <span id="slideTimestamp" class="slide-timestamp"></span>
                             </div>
                         </div>
@@ -76,7 +102,8 @@
                     {% else %}
                         <div class="slideshow-wrapper">
                             <div class="no-images">
-                                <div class="no-images-text">No snapshots yet</div>
+                                <div class="no-images-text">No face detection events yet</div>
+                                <div class="no-images-subtitle">Images with detected faces will appear here</div>
                             </div>
                         </div>
                     {% endif %}
@@ -86,7 +113,7 @@
                     <div class="section-header">
                         <div>
                             <div class="section-title">Recent Activity</div>
-                            <div class="section-subtitle">Snapshots and events</div>
+                            <div class="section-subtitle">Face detections and system events</div>
                         </div>
                     </div>
 

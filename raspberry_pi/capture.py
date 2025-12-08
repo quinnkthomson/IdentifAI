@@ -23,6 +23,7 @@ except ImportError:
 
 from config import *
 from utils import setup_logging, ensure_directory, get_iso_timestamp
+from cv_model import has_faces, get_face_count
 
 class MockCamera:
     """Mock camera for testing when picamera2 is not available"""
@@ -69,16 +70,23 @@ def capture_image(camera):
 def send_to_backend(image_path):
     """Send captured image data to the Flask backend"""
     try:
+        # Perform face detection
+        faces_detected = has_faces(image_path)
+        face_count = get_face_count(image_path) if faces_detected else 0
+
         with open(image_path, 'rb') as image_file:
             files = {'file': image_file}
             data = {
                 'timestamp': get_iso_timestamp(),
-                'source': 'raspberry_pi'
+                'source': 'raspberry_pi',
+                'faces_detected': 'true' if faces_detected else 'false',
+                'face_count': str(face_count)
             }
 
             response = requests.post(f"{BACKEND_URL}/pi_capture", files=files, data=data, timeout=BACKEND_TIMEOUT)
             if response.status_code == 201:
-                logging.info(f"Successfully sent {image_path} to backend")
+                if faces_detected:
+                    logging.info(f"Face detection event: {face_count} faces in {image_path}")
                 return True
             else:
                 logging.error(f"Failed to send to backend: {response.status_code} - {response.text}")
