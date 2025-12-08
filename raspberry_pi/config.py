@@ -13,7 +13,7 @@ CAMERA_FRAMERATE = 30
 
 # Capture settings
 CAPTURE_DIR = "captured_images"
-CAPTURE_INTERVAL = 2  # Seconds between captures
+CAPTURE_INTERVAL = 10  # Seconds between captures (increased to reduce detection frequency)
 IMAGE_QUALITY = 85
 
 # Backend communication
