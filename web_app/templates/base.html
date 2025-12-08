@@ -19,8 +19,8 @@
         </div>
         <div class="header-right">
             <div class="nav-links">
-                <a href="/" class="nav-link{% if request.endpoint == 'home' %} active{% endif %}">Stream</a>
-                <a href="/dashboard" class="nav-link{% if request.endpoint == 'dashboard' %} active{% endif %}">Dashboard</a>
+                <a href="/" class="nav-link{% if request.path == '/' %} active{% endif %}">Stream</a>
+                <a href="/dashboard" class="nav-link{% if request.path == '/dashboard' %} active{% endif %}">Dashboard</a>
             </div>
             {% block header_actions %}{% endblock %}
         </div>
