@@ -12,7 +12,6 @@ import time
 import requests
 import logging
 from datetime import datetime
-from pathlib import Path
 
 try:
     from picamera2 import Picamera2
