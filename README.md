@@ -1,222 +1,235 @@
-# 🥧 Raspberry Pi Facial Recognition System
+# 🎯 IdentifAI - Raspberry Pi Face Detection System
 
 ## Overview
 
-This project is a lightweight facial recognition system built using a Raspberry Pi 4, the Raspberry Pi Camera Module 3, Python, and OpenCV. The system captures live video from the camera, processes each frame, and detects or recognizes faces using a pre-trained model. The goal of this documentation is to provide clear, end-to-end instructions for installing, configuring, running, and troubleshooting the project. You should not need to contact me with questions; every step has been included with you in mind.
+IdentifAI is a face detection system built with a Raspberry Pi 4 and Camera Module 3. The system captures images at regular intervals, detects faces using OpenCV Haar cascades, and displays results through a web dashboard. 
 
-This project is designed to run on **Raspberry Pi OS Lite (32-bit)** and uses SSH for headless setup. No monitor, keyboard, or mouse is required.
+The architecture separates concerns between:
+- **Raspberry Pi** (`raspberry_pi/`): Camera capture and face detection
+- **Web Application** (`web_app/`): Dashboard, API, and data storage
+
+---
+
+## Features
+
+- 📷 **Automatic Image Capture** - Captures images every 30 seconds
+- 👤 **Face Detection** - Uses OpenCV Haar cascades to detect faces
+- 🖥️ **Web Dashboard** - View detection events and statistics
+- 📊 **Activity Logging** - Tracks all capture and detection events
+- 🔄 **Live Feed** - Displays latest captured frame on web interface
 
 ---
 
 ## Hardware Requirements
 
-* Raspberry Pi 4 (2GB, 4GB, or 8GB RAM)
-* Raspberry Pi Camera Module 3 (wide or standard)
-* MicroSD card (16GB or larger recommended)
-* Official Raspberry Pi power supply
-* Wi-Fi or Ethernet connection
-* (Optional) Short ribbon cable for camera positioning
+- Raspberry Pi 4 (2GB+ RAM recommended)
+- Raspberry Pi Camera Module 3 (wide or standard)
+- MicroSD card (16GB+)
+- Power supply
+- Wi-Fi or Ethernet connection
 
 ---
 
-## Software Requirements
+## Project Structure
 
-* Raspberry Pi OS Lite (32-bit)
-* Python 3 (pre-installed)
-* OpenCV for Python
-* Required Python packages (installed later)
-* SSH enabled
-
----
-
-## 1. Installation & Setup
-
-### Flash Raspberry Pi OS Lite
-
-1. Use Raspberry Pi Imager to install **Raspberry Pi OS Lite (32-bit)** on your microSD card.
-2. Before ejecting, go to *OS Customization*:
-
-   * Set hostname (example: `raspi-cam`)
-   * Enable SSH
-   * Configure Wi-Fi
-   * Set username/password
-3. Insert the microSD card into your Pi and power it on.
-
-### Connect via SSH
-
-On your laptop:
-
-```bash
-ssh <username>@<hostname>.local
+```
+IdentifAI/
+├── raspberry_pi/           # Camera and detection (runs on Pi)
+│   ├── capture.py          # Main capture loop
+│   ├── cv_model.py         # Face detection functions
+│   ├── config.py           # Pi configuration settings
+│   ├── utils.py            # Logging and helper functions
+│   ├── requirements.txt    # Pi dependencies
+│   ├── test_face_detection.py    # Detection test script
+│   └── troubleshoot_camera.py    # Camera diagnostics
+│
+├── web_app/                # Web interface
+│   ├── app.py              # Flask application
+│   ├── database.py         # SQLite database functions
+│   ├── config.py           # Web app configuration
+│   ├── requirements.txt    # Web dependencies
+│   ├── static/
+│   │   ├── styles.css      # CSS styling
+│   │   └── images/         # Captured images stored here
+│   ├── templates/
+│   │   ├── base.html       # Base template
+│   │   ├── index.html      # Camera feed page
+│   │   └── dashboard.html  # Detection events dashboard
+│   └── data/
+│       └── activity_log.json   # Activity feed
+│
+├── run_identifai.sh        # Convenience startup script
+└── README.md
 ```
 
-Example:
-
-```bash
-ssh pi@raspi-cam.local
-```
-
-If `.local` does not work, you may need to find the Pi's IP address using your router dashboard, `nmap`, or Raspberry Pi Connect.
-
 ---
 
-## 2. Enable Camera
+## Installation
 
-Run the following to enable the camera interface:
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/IdentifAI.git
+cd IdentifAI
+```
+
+### 2. Enable Camera (Raspberry Pi)
 
 ```bash
 sudo raspi-config
-```
-
-Navigate to:
-
-```
-Interface Options → Camera → Enable
-```
-
-Reboot:
-
-```bash
+# Navigate to: Interface Options -> Camera -> Enable
 sudo reboot
 ```
 
-To test the camera:
-
+Test the camera:
 ```bash
 libcamera-still -o test.jpg
 ```
 
----
+### 3. Install Dependencies
 
-## 3. Install Dependencies
-
-Update your system:
-
+**On Raspberry Pi (for capture service):**
 ```bash
-sudo apt update && sudo apt upgrade -y
+cd raspberry_pi
+pip install -r requirements.txt --only-binary=all
 ```
 
-Install camera + build tools:
-
+**For web application:**
 ```bash
-sudo apt install -y python3-pip python3-opencv libatlas-base-dev
+cd web_app
+pip install -r requirements.txt
 ```
-
-Install required Python libraries:
-
-```bash
-pip3 install numpy face-recognition
-```
-
-*(Note: `face-recognition` installs `dlib`. This step may take several minutes.)*
 
 ---
 
-## 4. Encoding Faces
+## Configuration
 
-Before running the system, encode your training images:
+### Raspberry Pi Settings (`raspberry_pi/config.py`)
 
-```bash
-python3 encode_faces.py
-```
-
-This generates `models/encodings.pickle`, which contains all face embeddings.
-
----
-
-## 5. Running the Facial Recognition System
-
-Start the program:
-
-```bash
-python3 main.py
-```
-
-You should see console output showing:
-
-* Frames processed
-* Detected faces
-* Matched names (or "Unknown")
-
-If you want the program to run automatically on boot:
-
-```bash
-sudo nano /etc/rc.local
-```
-
-Add the following line *before* `exit 0`:
-
-```bash
-python3 /home/pi/project/main.py &
-```
-
-Save and reboot.
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `CAPTURE_INTERVAL` | 30 | Seconds between captures |
+| `BACKEND_URL` | `http://localhost:5001` | Web app URL |
+| `ENABLE_FACE_DETECTION` | True | Enable/disable detection |
+| `DEMO_MODE` | False | Use mock camera for testing |
 
 ---
 
-## 6. Troubleshooting
+## Running the System
 
-### Camera not detected
+### Option 1: Run Both Services Manually
 
-Check ribbon orientation — blue side toward Ethernet port.
-Test camera:
-
+**Terminal 1 - Start Web Server:**
 ```bash
-libcamera-still -o test.jpg
+cd web_app
+python app.py
+```
+Web interface available at: `http://localhost:5001`
+
+**Terminal 2 - Start Capture Service:**
+```bash
+cd raspberry_pi
+python capture.py
 ```
 
-Run diagnostics:
+### Option 2: Use Startup Script
 
 ```bash
-dmesg | grep -i camera
+./run_identifai.sh
 ```
-
-### `face_recognition` installation fails
-
-Run:
-
-```bash
-sudo apt install build-essential cmake
-```
-
-Then reinstall:
-
-```bash
-pip3 install face-recognition
-```
-
-### SSH cannot connect
-
-Try:
-
-```bash
-ping raspi-cam.local
-```
-
-If no response, find IP using:
-
-```bash
-sudo nmap -sn 10.0.0.0/24
-```
-
-(Replace with your network range.)
 
 ---
 
-## 7. Notes for Graders / Staff
+## Usage
 
-* All code files are included and documented.
-* No GUI or desktop environment is required.
-* All installation commands are provided exactly as needed.
-* The project runs fully headless.
-* This README contains all steps necessary to test the project.
+### Web Interface
 
-If any step is unclear, the issue is likely related to network configuration or Pi camera seating — both common and mentioned above.
+- **Camera Feed** (`/`): Shows latest captured frame, updates every 30 seconds
+- **Dashboard** (`/dashboard`): View face detection events and statistics
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Camera feed page |
+| `/dashboard` | GET | Detection events dashboard |
+| `/video_feed` | GET | MJPEG stream of latest frame |
+| `/pi_capture` | POST | Receive capture from Pi |
+| `/activity_log` | GET | JSON activity feed |
 
 ---
 
-## 8. Conclusion
+## Face Detection Settings
 
-This project demonstrates how a lightweight Raspberry Pi system can perform real-time facial recognition using only Python, OpenCV, and a camera module. The code is simple enough for modification, yet robust enough to run continuously as a background service.
+The detection uses OpenCV Haar cascades with tuned parameters to reduce false positives:
 
-You should now have everything necessary to set up, build, run, and evaluate the project end-to-end.
+```python
+scale_factor = 1.3      # Image pyramid scale
+min_neighbors = 8       # Required neighbor detections  
+minSize = (60, 60)      # Minimum face size in pixels
+```
+
+To adjust sensitivity in `cv_model.py`:
+- **More detections**: Decrease `min_neighbors` (e.g., 5)
+- **Fewer false positives**: Increase `min_neighbors` (e.g., 10)
+
+---
+
+## Troubleshooting
+
+### Camera Not Detected
+
+1. Check ribbon cable orientation (blue side toward Ethernet)
+2. Run diagnostics:
+```bash
+cd raspberry_pi
+python troubleshoot_camera.py
+```
+
+### Face Detection Not Working
+
+Test the detection module:
+```bash
+cd raspberry_pi
+python test_face_detection.py
+```
+
+### Camera Initialization Failed
+
+If you see "camera init sequence did not complete":
+1. Check if another process is using the camera
+2. Reboot the Pi
+3. The system will fall back to mock mode for testing
+
+### OpenCV Installation Issues
+
+Use pre-compiled binaries for faster installation:
+```bash
+pip install opencv-python-headless --only-binary=all
+```
+
+---
+
+## Architecture
+
+The system uses a producer-consumer architecture:
+
+1. **capture.py** (Producer): Captures images, runs face detection, sends to web app
+2. **app.py** (Consumer): Receives data, stores in database, serves web interface
+
+**Data Flow:**
+```
+Camera → capture.py → cv_model.py → /pi_capture API → SQLite DB → Web Dashboard
+```
+
+---
+
+## Testing Without Camera
+
+Set `DEMO_MODE = True` in `raspberry_pi/config.py` to use mock camera for development.
+
+---
+
+## License
+
+MIT License
