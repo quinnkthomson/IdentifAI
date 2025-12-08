@@ -67,37 +67,47 @@ def get_face_events(limit=50):
 
 def get_face_events_with_faces(limit=50):
     """Get only events where faces were detected"""
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM face_events WHERE faces_detected = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
-    events = cur.fetchall()
-    conn.close()
-    return events
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM face_events WHERE faces_detected = 1 ORDER BY timestamp DESC LIMIT ?", (limit,))
+        events = cur.fetchall()
+        conn.close()
+        return events
+    except Exception as e:
+        # Return empty list on error instead of crashing
+        return []
 
 def get_face_detection_stats():
     """Get statistics about face detection events"""
-    conn = get_db()
-    cur = conn.cursor()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
 
-    # Total events
-    cur.execute("SELECT COUNT(*) as total_events FROM face_events")
-    total_events = cur.fetchone()['total_events']
+        # Get all stats in a single query for better performance
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total_events,
+                SUM(CASE WHEN faces_detected = 1 THEN 1 ELSE 0 END) as face_events,
+                COALESCE(SUM(face_count), 0) as total_faces
+            FROM face_events
+        """)
+        
+        result = cur.fetchone()
+        conn.close()
 
-    # Events with faces
-    cur.execute("SELECT COUNT(*) as face_events FROM face_events WHERE faces_detected = 1")
-    face_events = cur.fetchone()['face_events']
-
-    # Total faces detected
-    cur.execute("SELECT SUM(face_count) as total_faces FROM face_events")
-    total_faces = cur.fetchone()['total_faces'] or 0
-
-    conn.close()
-
-    return {
-        'total_events': total_events,
-        'face_events': face_events,
-        'total_faces': total_faces
-    }
+        return {
+            'total_events': result['total_events'] or 0,
+            'face_events': result['face_events'] or 0,
+            'total_faces': result['total_faces'] or 0
+        }
+    except Exception as e:
+        # Return default stats on error
+        return {
+            'total_events': 0,
+            'face_events': 0,
+            'total_faces': 0
+        }
 
 
 

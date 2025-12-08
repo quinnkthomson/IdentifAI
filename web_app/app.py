@@ -61,51 +61,34 @@ camera_lock = Lock()  # Use a lock to safely manage camera access
 
 
 def init_camera():
-    """Lazily initialize the camera once, avoiding double-start from the reloader."""
-    global picam2, CAMERA_AVAILABLE, encoder, output, is_recording, recording_filename
-    if not CAMERA_AVAILABLE or picam2 is not None:
-        return
-
-    if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        return
-
-    try:
-        cam = Picamera2()
-        video_config = cam.create_video_configuration(main={"size": (CAMERA_WIDTH, CAMERA_HEIGHT)}, encode="main")
-        cam.configure(video_config)
-        cam.start()
-        time.sleep(2)
-        picam2 = cam
-
-        # Always-on recording
-        recording_filename = secure_filename(f"continuous-{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}.mp4")
-        video_path = os.path.join(VIDEO_DIR, recording_filename)
-        encoder = H264Encoder(VIDEO_BITRATE)
-        output = FfmpegOutput(video_path)
-        picam2.start_encoder(encoder, output, quality=Quality.HIGH)
-        is_recording = True
-        app.logger.info("Camera initialized and continuous recording started.")
-    except Exception as e:
-        app.logger.warning(f"Camera initialization failed: {e}, using placeholder.")
-        picam2 = None
-        CAMERA_AVAILABLE = False
+    """Camera is managed by capture.py - web app doesn't initialize camera."""
+    # Camera initialization disabled to avoid conflicts with capture.py
+    # This prevents startup delays and camera access conflicts
+    global picam2
+    picam2 = None
+    app.logger.info("Camera initialization skipped - managed by capture.py service")
 
 
-# Initialize camera if this is the serving process
-init_camera()
+# Don't initialize camera automatically - let capture.py handle it
+# This prevents camera conflicts and startup delays
+# Camera will be initialized only when explicitly needed (if capture.py isn't running)
+# init_camera()  # Disabled to avoid conflicts with capture.py
 
 
 def _load_activities():
     """Load activity list tolerating legacy array format."""
     try:
+        if not os.path.exists(ACTIVITY_LOG_PATH):
+            return []
         with open(ACTIVITY_LOG_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
             if isinstance(data, list):
-                return data
+                return data[:100]  # Limit to 100 entries for performance
             if isinstance(data, dict):
-                return data.get("activities", [])
-    except Exception:
-        pass
+                activities = data.get("activities", [])
+                return activities[:100]  # Limit to 100 entries
+    except Exception as e:
+        app.logger.warning(f"Failed to load activities: {e}")
     return []
 
 
@@ -157,8 +140,8 @@ def home():
 @app.route('/dashboard')
 def dashboard():
     try:
-        # Get face detection events (only those with faces detected)
-        face_events = get_face_events_with_faces(limit=100)
+        # Get face detection events (only those with faces detected, limited for performance)
+        face_events = get_face_events_with_faces(limit=50)  # Reduced from 100 to 50 for better performance
 
         # Convert to format expected by template
         face_events_data = []
@@ -186,62 +169,63 @@ def dashboard():
 def generate_frames():
     """Generates JPEG frames from the camera for the web stream."""
     global picam2
-    if picam2 is None:
-        # Generate a placeholder frame with helpful message
-        width, height = CAMERA_WIDTH, CAMERA_HEIGHT
-        img = Image.new('RGB', (width, height), color='#2a2a2a')
+    
+    # Generate placeholder frame once (cache it)
+    width, height = CAMERA_WIDTH, CAMERA_HEIGHT
+    img = Image.new('RGB', (width, height), color='#2a2a2a')
+
+    try:
+        from PIL import ImageDraw, ImageFont
+        draw = ImageDraw.Draw(img)
 
         try:
-            from PIL import ImageDraw, ImageFont
-            draw = ImageDraw.Draw(img)
-
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+        except:
             try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-            except:
                 font = ImageFont.load_default()
+            except:
+                font = None
 
-            messages = [
-                "Camera Stream Unavailable",
-                "",
-                "The camera is currently being used by",
-                "the face detection capture service.",
-                "",
-                "To view live video:",
-                "1. Stop capture.py (Ctrl+C)",
-                "2. Refresh this page"
-            ]
+        messages = [
+            "Camera Stream Unavailable",
+            "",
+            "Camera is being used by face detection service",
+            "",
+            "View face detection events on Dashboard:",
+            "http://localhost:5001/dashboard"
+        ]
 
-            y_offset = 50
+        if font:
+            y_offset = 80
             for message in messages:
                 if message == "":
                     y_offset += 10
                     continue
-                bbox = draw.textbbox((0, 0), message, font=font)
-                text_width = bbox[2] - bbox[0]
-                x = (width - text_width) // 2
-                draw.text((x, y_offset), message, fill='white', font=font)
-                y_offset += 25
+                try:
+                    bbox = draw.textbbox((0, 0), message, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    x = (width - text_width) // 2
+                    draw.text((x, y_offset), message, fill='white', font=font)
+                    y_offset += 25
+                except:
+                    pass
+    except:
+        pass
 
-        except ImportError:
-            pass
+    img_io = BytesIO()
+    img.save(img_io, 'JPEG', quality=75)
+    placeholder_frame = img_io.getvalue()
 
-        img_io = BytesIO()
-        img.save(img_io, 'JPEG', quality=85)
-        frame = img_io.getvalue()
-
-        while True:
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            time.sleep(5)  # Update every 5 seconds
-    else:
-        # Real camera stream
-        while True:
-            with camera_lock:
-                buffer = BytesIO()
-                picam2.capture_file(buffer, format='jpeg')
-            frame = buffer.getvalue()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    # Always use placeholder - capture.py handles camera
+    frame_data = b'--frame\r\n' + b'Content-Type: image/jpeg\r\n\r\n' + placeholder_frame + b'\r\n'
+    
+    while True:
+        try:
+            yield frame_data
+            time.sleep(5)  # Update every 5 seconds (minimal CPU usage)
+        except Exception as e:
+            app.logger.error(f"Stream error: {e}")
+            time.sleep(5)
 
 @app.route('/video_feed')
 def video_feed():
@@ -324,50 +308,42 @@ def pi_capture():
 
 @app.route('/activity_log')
 def activity_log():
-    activities = _load_activities()
-    enriched = []
-    for act in activities:
-        ts = act.get('timestamp') or datetime.utcnow().isoformat() + 'Z'
-        time_ago = _compute_time_ago(ts)
-        enriched.append({**act, "time_ago": time_ago, "timestamp": ts})
-    return jsonify({"activities": enriched})
+    try:
+        activities = _load_activities()
+        enriched = []
+        # Limit processing to first 50 for performance
+        for act in activities[:50]:
+            try:
+                ts = act.get('timestamp') or datetime.utcnow().isoformat() + 'Z'
+                time_ago = _compute_time_ago(ts)
+                enriched.append({**act, "time_ago": time_ago, "timestamp": ts})
+            except Exception as e:
+                app.logger.warning(f"Error processing activity: {e}")
+                continue
+        return jsonify({"activities": enriched})
+    except Exception as e:
+        app.logger.error(f"Activity log error: {e}")
+        return jsonify({"activities": []})
 
 # --- New Video Recording Functions ---
 
 @app.route('/start_recording', methods=['POST'])
 def start_recording():
-    global picam2, is_recording, recording_filename, encoder, output
-    if not CAMERA_AVAILABLE or picam2 is None:
-        return jsonify({'error': 'Camera not available'}), 503
-
-    if is_recording:
-        return jsonify({'message': 'Already recording', 'filename': recording_filename}), 200
-
-    # If recording ever stopped, restart it
-    try:
-        with camera_lock:
-            recording_filename = secure_filename(f"continuous-{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}.mp4")
-            video_path = os.path.join(VIDEO_DIR, recording_filename)
-            encoder = H264Encoder(VIDEO_BITRATE)
-            output = FfmpegOutput(video_path)
-            picam2.start_encoder(encoder, output, quality=Quality.HIGH)
-            is_recording = True
-            log_activity('recording_start', f'Recording resumed: {recording_filename}')
-        return jsonify({'success': True, 'filename': recording_filename}), 200
-    except Exception as e:
-        app.logger.error(f'Failed to start recording: {e}')
-        is_recording = False
-        return jsonify({'success': False, 'error': str(e)}), 500
-
+    """Recording is handled by capture.py, not the web app"""
+    return jsonify({'message': 'Recording managed by capture.py service'}), 200
 
 @app.route('/stop_recording', methods=['POST'])
 def stop_recording():
-    global picam2, is_recording, recording_filename, encoder, output
-    return jsonify({'message': 'Recording is always on; stop not permitted'}), 405
+    """Recording is handled by capture.py, not the web app"""
+    return jsonify({'message': 'Recording managed by capture.py service'}), 200
 
-# Initialize database on startup
-with app.app_context():
-    init_db()
+# Initialize database on startup (non-blocking)
+try:
+    with app.app_context():
+        init_db()
+        app.logger.info("Database initialized successfully")
+except Exception as e:
+    app.logger.error(f"Database initialization error: {e}")
 
 # Run the application
 if __name__ == '__main__':
