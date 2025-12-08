@@ -36,10 +36,10 @@ def check_system():
     print("=" * 50)
 
     # Check if running on Raspberry Pi
-    run_command("uname -a | grep -i raspberry", "Check if running on Raspberry Pi")
+    run_command("cat /proc/cpuinfo | grep -i raspberry || uname -m | grep -E 'aarch64|arm' && echo 'ARM architecture detected (likely Raspberry Pi)' || echo 'Not running on Raspberry Pi'", "Check if running on Raspberry Pi")
 
     # Check Raspberry Pi OS version
-    run_command("lsb_release -a 2>/dev/null || cat /etc/os-release", "Check OS version")
+    run_command("lsb_release -d 2>/dev/null | cut -f2 || cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\"' || uname -s -r", "Check OS version")
 
     # Check Python version
     run_command("python3 --version", "Check Python version")
@@ -50,7 +50,7 @@ def check_camera_hardware():
     print("=" * 50)
 
     # Check if camera is enabled in raspi-config
-    run_command("raspi-config nonint get_camera", "Check if camera is enabled (should return 0)")
+    run_command("raspi-config nonint get_camera 2>/dev/null || echo 'raspi-config not available - check manually'", "Check if camera is enabled (should return 0)")
 
     # Check camera interface
     run_command("vcgencmd get_camera", "Check camera detection")
@@ -67,24 +67,42 @@ def check_camera_libraries():
     print("=" * 50)
 
     # Check if picamera2 is installed
-    run_command("python3 -c 'import picamera2; print(\"Picamera2 version:\", picamera2.__version__)'", "Check Picamera2 installation")
+    run_command("python3 -c 'import picamera2; print(\"Picamera2 imported successfully\"); print(\"Available classes:\", [x for x in dir(picamera2) if not x.startswith(\"_\")])'", "Check Picamera2 installation")
 
     # Check if OpenCV is installed
-    run_command("python3 -c 'import cv2; print(\"OpenCV version:\", cv2.__version__)'", "Check OpenCV installation")
+    run_command("python3 -c 'import cv2; print(\"OpenCV version:\", cv2.__version__); print(\"Available functions:\", len([x for x in dir(cv2) if not x.startswith(\"_\")]))'", "Check OpenCV installation")
 
     # Test basic camera functionality
     camera_test_cmd = '''python3 -c "
 try:
+    print('Testing Picamera2...')
     from picamera2 import Picamera2
-    print('Picamera2 import successful')
+    print('✓ Picamera2 import successful')
+    
+    print('Testing camera instantiation...')
     cam = Picamera2()
-    print('Picamera2 instance created')
+    print('✓ Picamera2 instance created')
+    
+    print('Testing configuration...')
     config = cam.create_still_configuration()
-    print('Configuration created')
+    print('✓ Configuration created')
+    
+    print('Testing camera configuration...')
     cam.configure(config)
-    print('Camera configured successfully')
+    print('✓ Camera configured successfully')
+    
+    print('Testing camera close...')
+    cam.close()
+    print('✓ Camera closed successfully')
+    
+    print('🎉 All camera tests passed!')
+    
+except ImportError as e:
+    print(f'❌ Import error: {e}')
+    print('   Solution: pip install picamera2')
 except Exception as e:
-    print(f'Camera test failed: {e}')
+    print(f'❌ Camera test failed: {e}')
+    print('   This is expected if camera is not connected/enabled')
 "'''
     run_command(camera_test_cmd, "Test basic camera functionality")
 
@@ -94,7 +112,7 @@ def check_permissions():
     print("=" * 50)
 
     # Check if user is in video group
-    run_command("groups | grep -q video && echo 'User is in video group' || echo 'User NOT in video group'", "Check video group membership")
+    run_command("groups $USER | grep -q video && echo '✅ User is in video group' || echo '❌ User NOT in video group (run: sudo usermod -a -G video $USER)'", "Check video group membership")
 
     # Check current user
     run_command("whoami", "Check current user")
