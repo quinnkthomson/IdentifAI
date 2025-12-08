@@ -139,29 +139,44 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
+    face_events_data = []
+    stats = {'face_events': 0, 'total_faces': 0, 'total_events': 0}
+    
     try:
         # Get face detection events (only those with faces detected, limited for performance)
-        face_events = get_face_events_with_faces(limit=50)  # Reduced from 100 to 50 for better performance
+        face_events = get_face_events_with_faces(limit=30)
 
         # Convert to format expected by template
-        face_events_data = []
         for event in face_events:
-            face_events_data.append({
-                "id": event["id"],
-                "file": event["image_path"].replace("images/", ""),
-                "timestamp": event["timestamp"],
-                "face_count": event["face_count"],
-                "source": event["source"]
-            })
+            try:
+                # Handle image path - extract just the filename
+                image_path = event["image_path"] if event["image_path"] else ""
+                # Remove 'images/' prefix if present
+                if image_path.startswith("images/"):
+                    filename = image_path[7:]  # Remove "images/" prefix
+                else:
+                    filename = os.path.basename(image_path)
+                
+                # Only add if we have a valid filename
+                if filename:
+                    face_events_data.append({
+                        "id": event["id"],
+                        "file": filename,
+                        "timestamp": event["timestamp"],
+                        "face_count": event["face_count"],
+                        "source": event["source"]
+                    })
+            except Exception as e:
+                app.logger.warning(f"Error processing event: {e}")
+                continue
 
         # Get statistics
         stats = get_face_detection_stats()
 
-        return render_template('dashboard.html', face_events=face_events_data, stats=stats)
     except Exception as e:
         app.logger.error(f"Dashboard error: {e}")
-        # Return dashboard with empty data on error
-        return render_template('dashboard.html', face_events=[], stats={'face_events': 0, 'total_faces': 0, 'total_events': 0})
+
+    return render_template('dashboard.html', face_events=face_events_data, stats=stats)
 
 
 # --- Video Streaming Functions ---
@@ -169,57 +184,74 @@ def dashboard():
 LATEST_FRAME_PATH = os.path.join(IMAGES_DIR, 'latest_frame.jpg')
 
 def generate_frames():
-    """Serves the latest captured frame as a pseudo-stream."""
+    """Serves the latest captured frame as a responsive stream."""
     last_mtime = 0
+    last_frame = None
+    placeholder_sent = False
     
     while True:
         try:
             # Check if latest frame exists
             if os.path.exists(LATEST_FRAME_PATH):
-                current_mtime = os.path.getmtime(LATEST_FRAME_PATH)
-                
-                # Read the latest frame
-                with open(LATEST_FRAME_PATH, 'rb') as f:
-                    frame = f.read()
-                
-                if len(frame) > 0:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                    last_mtime = current_mtime
-            else:
-                # Show placeholder if no frame available yet
-                width, height = CAMERA_WIDTH, CAMERA_HEIGHT
-                img = Image.new('RGB', (width, height), color='#2a2a2a')
-                
                 try:
-                    from PIL import ImageDraw, ImageFont
-                    draw = ImageDraw.Draw(img)
-                    try:
-                        font = ImageFont.load_default()
-                    except:
-                        font = None
+                    current_mtime = os.path.getmtime(LATEST_FRAME_PATH)
                     
-                    if font:
-                        messages = ["Waiting for camera...", "", "Make sure capture.py is running"]
-                        y = 100
-                        for msg in messages:
-                            if msg:
-                                draw.text((50, y), msg, fill='white', font=font)
-                            y += 30
-                except:
+                    # Only read file if it's been modified or we haven't read it yet
+                    if current_mtime != last_mtime or last_frame is None:
+                        with open(LATEST_FRAME_PATH, 'rb') as f:
+                            frame = f.read()
+                        
+                        if len(frame) > 100:  # Sanity check for valid JPEG
+                            last_frame = frame
+                            last_mtime = current_mtime
+                            placeholder_sent = False
+                    
+                    # Always yield the last valid frame
+                    if last_frame:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + last_frame + b'\r\n')
+                except (IOError, OSError):
+                    # File might be being written, skip this iteration
                     pass
+            else:
+                # Show placeholder only once, then keep serving it
+                if not placeholder_sent or last_frame is None:
+                    width, height = CAMERA_WIDTH, CAMERA_HEIGHT
+                    img = Image.new('RGB', (width, height), color='#1a1a1a')
+                    
+                    try:
+                        from PIL import ImageDraw, ImageFont
+                        draw = ImageDraw.Draw(img)
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+                        
+                        if font:
+                            messages = ["Waiting for camera...", "", "Start capture.py to see live feed"]
+                            y = height // 2 - 30
+                            for msg in messages:
+                                if msg:
+                                    draw.text((width // 4, y), msg, fill='#888888', font=font)
+                                y += 25
+                    except:
+                        pass
+                    
+                    img_io = BytesIO()
+                    img.save(img_io, 'JPEG', quality=85)
+                    last_frame = img_io.getvalue()
+                    placeholder_sent = True
                 
-                img_io = BytesIO()
-                img.save(img_io, 'JPEG', quality=75)
-                frame = img_io.getvalue()
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                if last_frame:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + last_frame + b'\r\n')
             
-            time.sleep(2)  # Check for new frame every 2 seconds
+            # Fast polling for responsive feel (0.1s = 10fps max)
+            time.sleep(0.1)
             
         except Exception as e:
             app.logger.error(f"Stream error: {e}")
-            time.sleep(2)
+            time.sleep(0.5)
 
 @app.route('/video_feed')
 def video_feed():
