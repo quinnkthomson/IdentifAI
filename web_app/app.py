@@ -156,24 +156,29 @@ def home():
 
 @app.route('/dashboard')
 def dashboard():
-    # Get face detection events (only those with faces detected)
-    face_events = get_face_events_with_faces(limit=100)
+    try:
+        # Get face detection events (only those with faces detected)
+        face_events = get_face_events_with_faces(limit=100)
 
-    # Convert to format expected by template
-    face_events_data = []
-    for event in face_events:
-        face_events_data.append({
-            "id": event["id"],
-            "file": event["image_path"].replace("images/", ""),
-            "timestamp": event["timestamp"],
-            "face_count": event["face_count"],
-            "source": event["source"]
-        })
+        # Convert to format expected by template
+        face_events_data = []
+        for event in face_events:
+            face_events_data.append({
+                "id": event["id"],
+                "file": event["image_path"].replace("images/", ""),
+                "timestamp": event["timestamp"],
+                "face_count": event["face_count"],
+                "source": event["source"]
+            })
 
-    # Get statistics
-    stats = get_face_detection_stats()
+        # Get statistics
+        stats = get_face_detection_stats()
 
-    return render_template('dashboard.html', face_events=face_events_data, stats=stats)
+        return render_template('dashboard.html', face_events=face_events_data, stats=stats)
+    except Exception as e:
+        app.logger.error(f"Dashboard error: {e}")
+        # Return dashboard with empty data on error
+        return render_template('dashboard.html', face_events=[], stats={'face_events': 0, 'total_faces': 0, 'total_events': 0})
 
 
 # --- Video Streaming Functions (from your app.py) ---

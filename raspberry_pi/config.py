@@ -33,3 +33,6 @@ VERBOSE_LOGGING = True
 
 # Demo mode (runs without camera if True)
 DEMO_MODE = False  # Set to True to force mock camera even if real camera available
+
+# Face detection settings
+ENABLE_FACE_DETECTION = True  # Set to False to skip face detection (just capture images)
