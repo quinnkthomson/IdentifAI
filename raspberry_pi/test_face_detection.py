@@ -11,8 +11,17 @@ sys.path.append(os.path.dirname(__file__))
 def test_face_detection():
     """Test face detection with a sample image"""
     try:
-        from cv_model import has_faces, detect_faces, get_face_count
+        from cv_model import has_faces, detect_faces, get_face_count, init_face_detector
         print("✅ Face detection modules imported successfully")
+
+        # Test cascade loading
+        print("🔍 Testing cascade classifier loading...")
+        cascade = init_face_detector()
+        if cascade and not cascade.empty():
+            print("✅ Haar cascade classifier loaded successfully")
+        else:
+            print("❌ Haar cascade classifier failed to load")
+            return False
 
         # Create a simple test image (this won't detect as a face, but tests the pipeline)
         import cv2
@@ -46,6 +55,8 @@ def test_face_detection():
 
     except Exception as e:
         print(f"❌ Face detection test failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def test_raspberry_pi_imports():
