@@ -30,3 +30,6 @@ LOG_FILE = "capture.log"
 # Debug settings
 DEBUG_MODE = True
 VERBOSE_LOGGING = True
+
+# Demo mode (runs without camera if True)
+DEMO_MODE = False  # Set to True to force mock camera even if real camera available

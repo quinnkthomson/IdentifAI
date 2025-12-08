@@ -21,6 +21,7 @@ except ImportError:
     CAMERA_AVAILABLE = False
 
 from config import *
+from cv_model import has_faces, get_face_count
 from utils import setup_logging, ensure_directory, get_iso_timestamp
 from cv_model import has_faces, get_face_count
 
@@ -45,12 +46,26 @@ class MockCamera:
 
 def setup_camera():
     """Initialize and configure the camera"""
-    if CAMERA_AVAILABLE:
+    if DEMO_MODE:
+        print("Demo mode enabled, using mock camera")
+        return MockCamera()
+
+    if not CAMERA_AVAILABLE:
+        print("Picamera2 not available, using mock camera")
+        return MockCamera()
+
+    try:
+        print("Initializing Picamera2...")
         picam2 = Picamera2()
+        print("Creating camera configuration...")
         config = picam2.create_still_configuration()
+        print("Configuring camera...")
         picam2.configure(config)
+        print("✅ Camera initialized successfully")
         return picam2
-    else:
+    except Exception as e:
+        print(f"❌ Camera initialization failed: {e}")
+        print("Falling back to mock camera for testing")
         return MockCamera()
 
 def capture_image(camera):
@@ -64,6 +79,17 @@ def capture_image(camera):
         return filename
     except Exception as e:
         logging.error(f"Failed to capture image: {e}")
+        # If this is a real camera, try to restart it
+        if hasattr(camera, 'stop') and hasattr(camera, 'start') and not isinstance(camera, MockCamera):
+            try:
+                logging.info("Attempting to restart camera...")
+                camera.stop()
+                import time
+                time.sleep(1)
+                camera.start()
+                logging.info("Camera restarted successfully")
+            except Exception as restart_error:
+                logging.error(f"Failed to restart camera: {restart_error}")
         return None
 
 def send_to_backend(image_path):
@@ -102,9 +128,21 @@ def main():
     # Setup
     ensure_directory(CAPTURE_DIR)
     camera = setup_camera()
-    camera.start()
 
-    logging.info(f"Camera initialized. Capturing every {CAPTURE_INTERVAL} seconds...")
+    try:
+        camera.start()
+        logging.info(f"Camera initialized. Capturing every {CAPTURE_INTERVAL} seconds...")
+    except Exception as e:
+        logging.error(f"Failed to start camera: {e}")
+        if isinstance(camera, MockCamera):
+            logging.info("Using mock camera - no real camera available")
+            logging.info(f"Mock capture mode. Capturing every {CAPTURE_INTERVAL} seconds...")
+        else:
+            logging.error("Real camera failed to start. Switching to mock camera for testing.")
+            # Switch to mock camera
+            camera = MockCamera()
+            camera.start()
+            logging.info("Mock camera activated. System will run in demo mode.")
 
     try:
         while True:
