@@ -1,11 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}IdentifAI{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <h1>IdentifAI</h1>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <a href="/" class="logo">IdentifAI</a>
+            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
+        </div>
+        <div class="header-right">
+            <div class="nav-links">
+                <a href="/" class="nav-link{% if request.endpoint == 'home' %} active{% endif %}">Stream</a>
+                <a href="/dashboard" class="nav-link{% if request.endpoint == 'dashboard' %} active{% endif %}">Dashboard</a>
+            </div>
+            {% block header_actions %}{% endblock %}
+        </div>
+    </div>
+
     {% block content %}{% endblock %}
+
+    <script>
+        // Timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[now.getMonth()];
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMinutes = minutes.toString().padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${month} ${displayHours}:${displayMinutes} ${ampm}`;
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 60000);
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

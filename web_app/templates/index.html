@@ -1,37 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IdentifAI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <!-- Top Header -->
-    <div class="top-header">
-        <div class="header-left">
-            <a href="/" class="logo">IdentifAI</a>
-            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
-        </div>
-        <div class="header-right">
-            <div class="nav-links">
-                <a href="/" class="nav-link active">Stream</a>
-                <a href="/dashboard" class="nav-link">Dashboard</a>
-            </div>
-            <a href="/dashboard" class="btn-primary">View Dashboard</a>
-            <button class="btn-icon">+</button>
-        </div>
-    </div>
+{% extends "base.html" %}
 
+{% block title %}IdentifAI - Live Stream{% endblock %}
+
+{% block header_actions %}
+    <a href="/dashboard" class="btn-primary">View Dashboard</a>
+    <button class="btn-icon">+</button>
+{% endblock %}
+
+{% block content %}
     <!-- Content Area -->
     <div class="content-area">
         <div class="content-header">
             <div class="content-title">Camera Stream</div>
             <div class="content-description">
-                Real-time facial recognition system providing live video feed and monitoring capabilities for security and access control.
+                Real-time face detection system providing live video feed and monitoring capabilities.
             </div>
         </div>
 
@@ -76,7 +58,7 @@
                     <div class="stat-card-title">Stream Info</div>
                     <div class="stat-item">
                         <span class="stat-label">Resolution</span>
-                        <span class="stat-value">640×480</span>
+                        <span class="stat-value">{{ config.CAMERA_WIDTH }}×{{ config.CAMERA_HEIGHT }}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">FPS</span>
@@ -92,24 +74,10 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
+{% block extra_scripts %}
     <script>
-        // Timestamp
-        function updateTimestamp() {
-            const now = new Date();
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = months[now.getMonth()];
-            const day = now.getDate();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            const displayHours = hours % 12 || 12;
-            const displayMinutes = minutes.toString().padStart(2, '0');
-            document.getElementById('timestamp').textContent = `${month} ${day}, ${displayHours}:${displayMinutes} ${ampm}`;
-        }
-        updateTimestamp();
-        setInterval(updateTimestamp, 60000);
-
         // Uptime
         let startTime = Date.now();
         function updateUptime() {
@@ -118,7 +86,7 @@
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
             const secs = seconds % 60;
-            document.getElementById('uptime').textContent = 
+            document.getElementById('uptime').textContent =
                 `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         }
         setInterval(updateUptime, 1000);
@@ -130,7 +98,7 @@
             loading.classList.add('show');
             status.textContent = 'Disconnected';
             status.className = 'stat-value status-disconnected';
-            
+
             setTimeout(() => {
                 document.getElementById('videoFeed').src = '/video_feed?' + new Date().getTime();
                 loading.classList.remove('show');
@@ -142,13 +110,13 @@
             const videoFeed = document.getElementById('videoFeed');
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
+
             const width = videoFeed.naturalWidth || videoFeed.clientWidth || 640;
             const height = videoFeed.naturalHeight || videoFeed.clientHeight || 480;
-            
+
             canvas.width = width;
             canvas.height = height;
-            
+
             try {
                 // Try to draw immediately from the image
                 if (videoFeed.complete && videoFeed.naturalWidth > 0) {
@@ -323,5 +291,4 @@
             window.addEventListener('beforeunload', stopAutoCapture);
         }
     </script>
-</body>
-</html>
+{% endblock %}

@@ -1,13 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - IdentifAI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+{% extends "base.html" %}
+
+{% block title %}Face Detection Dashboard - IdentifAI{% endblock %}
+
+{% block header_actions %}
+    <a href="/" class="btn-primary">Back to Stream</a>
+{% endblock %}
+
+{% block extra_head %}
     <style>
         .slideshow-card { width: 100%; }
         .slideshow-wrapper { background: #f5f5f5; padding: 24px; border: 1px solid #e5e5e5; }
@@ -29,22 +28,9 @@
         .no-images-subtitle { font-size: 14px; color: #999; margin-top: 8px; }
         @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } .slide img { max-height: 60vh; } }
     </style>
-</head>
-<body>
-    <div class="top-header">
-        <div class="header-left">
-            <a href="/" class="logo">IdentifAI</a>
-            <div class="header-date" id="timestamp">Dec 6, 6:30 PM</div>
-        </div>
-        <div class="header-right">
-            <div class="nav-links">
-                <a href="/" class="nav-link">Stream</a>
-                <a href="/dashboard" class="nav-link active">Dashboard</a>
-            </div>
-            <a href="/" class="btn-primary">Back to Stream</a>
-        </div>
-    </div>
+{% endblock %}
 
+{% block content %}
     <div class="content-area">
         <div class="content-header">
             <div class="content-title">Face Detection Dashboard</div>
@@ -134,7 +120,9 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
+{% block extra_scripts %}
     <script>
         // Timestamp
         function updateTimestamp() {
@@ -249,5 +237,4 @@
         loadActivity();
         setInterval(loadActivity, 10000);
     </script>
-</body>
-</html>
+{% endblock %}

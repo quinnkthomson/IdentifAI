@@ -26,34 +26,19 @@ instance/
 *.db
 *.sqlite3
 
-# For your specific project:
-data/events.db
-
 # ----------------------------
 # Captured Images & Video
 # ----------------------------
-data/captured_images/
-raspberry_pi/captured_images/
 *.jpg
 *.jpeg
 *.png
 *.mp4
+web_app/static/images/
 
 # ----------------------------
-# Reference Images (Optionally ignore)
-# If you want to track known-face reference images, remove this section.
+# Raspberry Pi Captures
 # ----------------------------
-web_app/uploads/reference_faces/
-
-# ----------------------------
-# Machine Learning Models
-# ----------------------------
-*.pt         # PyTorch weights (YOLO)
-*.onnx
-*.h5
-*.pkl
-*.joblib
-model_cache/
+captured_images/
 
 # ----------------------------
 # Logs

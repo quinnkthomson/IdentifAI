@@ -3,14 +3,15 @@ import os
 import time
 from datetime import datetime
 import json
-import shutil
 from io import BytesIO
 from threading import Thread, Lock
-from flask import Flask, render_template, request, jsonify, url_for, send_file, Response, redirect
+from flask import Flask, render_template, request, jsonify, url_for, Response
 from werkzeug.utils import secure_filename
 from PIL import Image
 from datetime import timezone
 from database import init_db, log_face_event, get_face_events_with_faces, get_face_detection_stats
+from config import CAMERA_WIDTH, CAMERA_HEIGHT, VIDEO_BITRATE, MAX_CONTENT_LENGTH
+import config as app_config
 
 # Imports for Camera and Video Recording
 # NOTE: You must have 'picamera2[full]' installed for the encoders to work:
@@ -38,7 +39,7 @@ except ImportError as e:
 # Initialize Flask application and settings
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 app = Flask(__name__, template_folder=template_dir)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 # Define asset directories
 VIDEO_DIR = os.path.join(app.static_folder, 'videos')
 IMAGES_DIR = os.path.join(app.static_folder, 'images')
@@ -70,7 +71,7 @@ def init_camera():
 
     try:
         cam = Picamera2()
-        video_config = cam.create_video_configuration(main={"size": (640, 480)}, encode="main")
+        video_config = cam.create_video_configuration(main={"size": (CAMERA_WIDTH, CAMERA_HEIGHT)}, encode="main")
         cam.configure(video_config)
         cam.start()
         time.sleep(2)
@@ -79,7 +80,7 @@ def init_camera():
         # Always-on recording
         recording_filename = secure_filename(f"continuous-{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}.mp4")
         video_path = os.path.join(VIDEO_DIR, recording_filename)
-        encoder = H264Encoder(10000000)
+        encoder = H264Encoder(VIDEO_BITRATE)
         output = FfmpegOutput(video_path)
         picam2.start_encoder(encoder, output, quality=Quality.HIGH)
         is_recording = True
@@ -150,7 +151,7 @@ def log_activity(activity_type, description, image=None):
 
 @app.route('/')
 def home():
-    return render_template('index.html', is_recording=is_recording)
+    return render_template('index.html', is_recording=is_recording, config=app_config)
 
 
 @app.route('/dashboard')
@@ -186,7 +187,7 @@ def generate_frames():
             # Placeholder frame logic (omitted for brevity, use your full placeholder logic here)
             # ...
             # Generate a simple black frame for the placeholder
-            width, height = 640, 480
+            width, height = CAMERA_WIDTH, CAMERA_HEIGHT
             img = Image.new('RGB', (width, height), color='#1a1a1a')
             img_io = BytesIO()
             img.save(img_io, 'JPEG', quality=85)
@@ -311,7 +312,7 @@ def start_recording():
         with camera_lock:
             recording_filename = secure_filename(f"continuous-{datetime.utcnow().strftime('%Y%m%dT%H%M%S')}.mp4")
             video_path = os.path.join(VIDEO_DIR, recording_filename)
-            encoder = H264Encoder(10000000)
+            encoder = H264Encoder(VIDEO_BITRATE)
             output = FfmpegOutput(video_path)
             picam2.start_encoder(encoder, output, quality=Quality.HIGH)
             is_recording = True
