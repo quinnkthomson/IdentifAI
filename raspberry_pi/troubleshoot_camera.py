@@ -73,19 +73,20 @@ def check_camera_libraries():
     run_command("python3 -c 'import cv2; print(\"OpenCV version:\", cv2.__version__)'", "Check OpenCV installation")
 
     # Test basic camera functionality
-    run_command("python3 -c '
+    camera_test_cmd = '''python3 -c "
 try:
     from picamera2 import Picamera2
-    print(\"Picamera2 import successful\")
+    print('Picamera2 import successful')
     cam = Picamera2()
-    print(\"Picamera2 instance created\")
+    print('Picamera2 instance created')
     config = cam.create_still_configuration()
-    print(\"Configuration created\")
+    print('Configuration created')
     cam.configure(config)
-    print(\"Camera configured successfully\")
+    print('Camera configured successfully')
 except Exception as e:
-    print(f\"Camera test failed: {e}\")
-'", "Test basic camera functionality")
+    print(f'Camera test failed: {e}')
+"'''
+    run_command(camera_test_cmd, "Test basic camera functionality")
 
 def check_permissions():
     """Check user permissions"""
@@ -99,17 +100,18 @@ def check_permissions():
     run_command("whoami", "Check current user")
 
     # Check if user can access camera
-    run_command("python3 -c '
+    device_check_cmd = '''python3 -c "
 import os
 try:
     # Try to access camera device
-    if os.path.exists(\"/dev/vchiq\"):
-        print(\"Can access camera device\")
+    if os.path.exists('/dev/vchiq'):
+        print('Can access camera device')
     else:
-        print(\"Camera device not found\")
+        print('Camera device not found')
 except Exception as e:
-    print(f\"Permission check failed: {e}\")
-'", "Check camera device access")
+    print(f'Permission check failed: {e}')
+"'''
+    run_command(device_check_cmd, "Check camera device access")
 
 def provide_solutions():
     """Provide troubleshooting solutions"""
