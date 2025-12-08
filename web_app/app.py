@@ -43,7 +43,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 # Define asset directories
 VIDEO_DIR = os.path.join(app.static_folder, 'videos')
 IMAGES_DIR = os.path.join(app.static_folder, 'images')
-ACTIVITY_LOG_PATH = os.path.join(app.static_folder, 'activity_log.json')
+ACTIVITY_LOG_PATH = os.path.join(os.path.dirname(__file__), 'data', 'activity_log.json')
 os.makedirs(VIDEO_DIR, exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)
 if not os.path.exists(ACTIVITY_LOG_PATH):
