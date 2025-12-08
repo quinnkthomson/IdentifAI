@@ -27,7 +27,8 @@ def test_face_detection():
         has_face = has_faces('test_image.jpg')
         face_count = get_face_count('test_image.jpg')
 
-        print("✅ Face detection functions working:"        print(f"   - Detected faces: {len(faces)}")
+        print("✅ Face detection functions working:")
+        print(f"   - Detected faces: {len(faces)}")
         print(f"   - Has faces: {has_face}")
         print(f"   - Face count: {face_count}")
 
@@ -39,7 +40,8 @@ def test_face_detection():
     except ImportError as e:
         print(f"❌ Import error: {e}")
         print("   Make sure OpenCV and dependencies are installed:")
-        print("   pip install opencv-python numpy Pillow")
+        print("   pip install opencv-python-headless --only-binary=opencv-python-headless")
+        print("   pip install numpy Pillow")
         return False
 
     except Exception as e:
@@ -78,6 +80,6 @@ if __name__ == "__main__":
 
     print("\n📋 To install dependencies:")
     print("   cd raspberry_pi")
-    print("   pip install -r requirements.txt")
+    print("   pip install -r requirements.txt --only-binary=all")
     print("\n📋 To run the capture system:")
     print("   python3 capture.py")

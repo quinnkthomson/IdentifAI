@@ -1,5 +1,9 @@
+# FASTEST INSTALLATION: Use pre-compiled wheels
+# Run: pip install -r requirements.txt --only-binary=all
+# This downloads pre-compiled binaries (1-5 min) instead of compiling (10-30 min)
+
 picamera2>=0.3.0
 requests>=2.25.0
 numpy>=1.21.0
-opencv-python>=4.5.0
+opencv-python-headless>=4.5.0  # Use --only-binary flag for fastest install
 Pillow>=8.0.0
