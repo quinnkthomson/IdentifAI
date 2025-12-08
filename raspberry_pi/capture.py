@@ -23,7 +23,6 @@ except ImportError:
 from config import *
 from cv_model import has_faces, get_face_count
 from utils import setup_logging, ensure_directory, get_iso_timestamp
-from cv_model import has_faces, get_face_count
 
 class MockCamera:
     """Mock camera for testing when picamera2 is not available"""
@@ -159,6 +158,43 @@ def main():
         logging.info("Stopping capture service...")
     finally:
         camera.stop()
+
+def main():
+    """Main capture loop"""
+    setup_logging(LOG_FILE, logging.DEBUG if DEBUG_MODE else logging.INFO)
+    logging.info("Starting Raspberry Pi capture service...")
+
+    # Setup
+    ensure_directory(CAPTURE_DIR)
+    camera = setup_camera()
+
+    try:
+        camera.start()
+        logging.info(f"Camera initialized. Capturing every {CAPTURE_INTERVAL} seconds...")
+
+        # Main capture loop
+        try:
+            while True:
+                # Capture image
+                image_path = capture_image(camera)
+                if image_path:
+                    # Send to backend
+                    send_to_backend(image_path)
+
+                # Wait before next capture
+                time.sleep(CAPTURE_INTERVAL)
+
+        except KeyboardInterrupt:
+            logging.info("Stopping capture service...")
+        finally:
+            camera.stop()
+
+    except Exception as e:
+        logging.error(f"Failed to start camera service: {e}")
+        if isinstance(camera, MockCamera):
+            logging.info("Running in demo mode - no camera required")
+        else:
+            raise
 
 if __name__ == "__main__":
     main()

@@ -182,26 +182,57 @@ def generate_frames():
     """Generates JPEG frames from the camera for the web stream."""
     global picam2
     if picam2 is None:
-        # Fallback: generate placeholder frames (simplified for brevity)
-        while True:
-            # Placeholder frame logic (omitted for brevity, use your full placeholder logic here)
-            # ...
-            # Generate a simple black frame for the placeholder
-            width, height = CAMERA_WIDTH, CAMERA_HEIGHT
-            img = Image.new('RGB', (width, height), color='#1a1a1a')
-            img_io = BytesIO()
-            img.save(img_io, 'JPEG', quality=85)
-            frame = img_io.getvalue()
+        # Generate a placeholder frame with helpful message
+        width, height = CAMERA_WIDTH, CAMERA_HEIGHT
+        img = Image.new('RGB', (width, height), color='#2a2a2a')
 
+        try:
+            from PIL import ImageDraw, ImageFont
+            draw = ImageDraw.Draw(img)
+
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+            except:
+                font = ImageFont.load_default()
+
+            messages = [
+                "Camera Stream Unavailable",
+                "",
+                "The camera is currently being used by",
+                "the face detection capture service.",
+                "",
+                "To view live video:",
+                "1. Stop capture.py (Ctrl+C)",
+                "2. Refresh this page"
+            ]
+
+            y_offset = 50
+            for message in messages:
+                if message == "":
+                    y_offset += 10
+                    continue
+                bbox = draw.textbbox((0, 0), message, font=font)
+                text_width = bbox[2] - bbox[0]
+                x = (width - text_width) // 2
+                draw.text((x, y_offset), message, fill='white', font=font)
+                y_offset += 25
+
+        except ImportError:
+            pass
+
+        img_io = BytesIO()
+        img.save(img_io, 'JPEG', quality=85)
+        frame = img_io.getvalue()
+
+        while True:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            time.sleep(0.5)
+            time.sleep(5)  # Update every 5 seconds
     else:
         # Real camera stream
         while True:
-            with camera_lock: # Safely access the camera
+            with camera_lock:
                 buffer = BytesIO()
-                # Use the main stream's configuration for the capture
                 picam2.capture_file(buffer, format='jpeg')
             frame = buffer.getvalue()
             yield (b'--frame\r\n'

@@ -95,7 +95,7 @@
             const loading = document.getElementById('loading');
             const status = document.getElementById('connectionStatus');
             loading.classList.add('show');
-            status.textContent = 'Disconnected';
+            status.textContent = 'Camera In Use';
             status.className = 'stat-value status-disconnected';
 
             setTimeout(() => {
@@ -103,6 +103,8 @@
                 loading.classList.remove('show');
             }, 2000);
         }
+
+        // Stream starts automatically with /video_feed
 
         // Capture snapshot
         function captureSnapshot() {
